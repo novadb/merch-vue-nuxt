@@ -46,6 +46,13 @@ products as cards in its content. The home page is the page without a parent.
   known beforehand (a page's image, the pictures a document embeds, the products it embeds), a filter
   `meta.id = a, b, c` reads exactly those. Colour, material, finish and group are small types, read whole and looked
   up by `meta.id`.
+  Which way fits depends on how the targets are shared: `resolve` when each target belongs to one or a few objects and
+  every read needs it (a product's picture: none arrives twice), an ID filter when the IDs are known before the read, a
+  small type read whole when many objects share few targets. Only a large target that many objects share, or a read near
+  the limit of 10000 objects plus `refs`, is worth reading by ID in a request of its own, so that a cache can hold each
+  target once. That cache's key holds everything the response depends on (type, `lang`, `variants`, `props`, ID), or a
+  price or text of another market or language comes back. The site caches every response whole for 60 seconds; at its
+  size a cache per object would add a layer and save no request.
 - **Structures.** The page tree is the structure Sitemap: each page names its parent (`merchPageParent`), at any
   depth. There is no tree route, and sibling order is not part of a structure: the site reads all pages in one request
   sorted by `merchPageSortKey` and links them itself. A page's URL is the chain of its ancestors' URL segments; a
