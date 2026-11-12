@@ -222,9 +222,19 @@ main > section, main > nav, main > article { width: var(--page); margin-inline: 
 /* a split inside a band or a chapter sits closer to its neighbours */
 :is(.merchBand, .merchBandDark, .merchBandWarm, .merchBandAccent, .merchChapter) .merchSplit { margin-block: clamp(20px, 4cqi, 40px); }
 
-.imageWithCaption { margin: 0; }
+/* A picture and its caption share one hairline frame (the line of a feature): no surface and no shadow, which belong to
+   floating layers. Line and caption take their colour from the ink around them, so the frame is right in every band and
+   in both colour schemes without a rule of its own. */
+.imageWithCaption { margin: 0; overflow: hidden; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: var(--radius); }
 .websiteImage { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius); background: var(--sunken); mix-blend-mode: var(--image-blend); }
-.caption { margin: 10px 0 0; color: var(--muted); font-size: 0.85rem; }
+.imageWithCaption > .websiteImage { border-radius: 0; mix-blend-mode: normal; }
+.caption { margin: 10px 0 0; font-size: 0.85rem; opacity: 0.75; }
+.imageWithCaption > .caption { margin: 0; padding: 10px 16px; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
+/* A picture in a chapter is a screenshot, not a photo: shown as it is, never cropped to a square (`auto 16 / 10` holds the
+   place until the file has loaded). The file is the UI and nothing else: its edge is the frame above. A picture straight
+   in the chapter spans its whole text column. */
+.merchChapter .websiteImage { aspect-ratio: auto 16 / 10; height: auto; mix-blend-mode: normal; }
+.merchChapter > .imageWithCaption { margin-block: clamp(20px, 4cqi, 40px); }
 .headline { font-size: clamp(1.6rem, 3cqi, 2.2rem); }
 .paragraph { margin-block: 0 1em; }
 
@@ -241,7 +251,8 @@ main > section, main > nav, main > article { width: var(--page); margin-inline: 
   .merchHero:has(.imageWithCaption)::before { content: ""; grid-area: 1 / 1; }
   .merchHero:has(.imageWithCaption)::after { content: ""; grid-area: 7 / 1; }
   .merchHero:has(.imageWithCaption) > * { grid-column: 1; max-width: none; }
-  .merchHero:has(.imageWithCaption) > .imageWithCaption { grid-column: 2; grid-row: 1 / -1; margin-top: 0; }
+  /* `align-self`: the frame ends below its caption, also where the text column is the taller one */
+  .merchHero:has(.imageWithCaption) > .imageWithCaption { grid-column: 2; grid-row: 1 / -1; align-self: start; margin-top: 0; }
   .merchHero:has(.imageWithCaption) > .merchLead { max-width: 46ch; }
 }
 
@@ -264,7 +275,7 @@ main > section, main > nav, main > article { width: var(--page); margin-inline: 
 /* A chapter: the kicker is its label (a time, a number, a year) and stays beside the chapter while it scrolls past.
    `!important` on the position: the editor sets `position: relative` inline on every text it lets one edit. */
 .merchChapter { display: grid; grid-template-columns: clamp(4.5rem, 12cqi, 8rem) minmax(0, 1fr); column-gap: clamp(20px, 4cqi, 48px); padding-block: clamp(24px, 4cqi, 44px); border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
-.merchChapter > .merchKicker { grid-area: 1 / 1 / span 6; align-self: start; position: sticky !important; top: 100px; margin: 0; font: 400 clamp(1.6rem, 3.4cqi, 2.6rem)/1 var(--font-display); letter-spacing: -0.02em; text-transform: none; }
+.merchChapter > .merchKicker { grid-area: 1 / 1 / span 20; align-self: start; position: sticky !important; top: 100px; margin: 0; font: 400 clamp(1.6rem, 3.4cqi, 2.6rem)/1 var(--font-display); letter-spacing: -0.02em; text-transform: none; }
 .merchChapter > :not(.merchKicker) { grid-column: 2; }
 .merchChapter .headline { font-size: clamp(1.4rem, 2.6cqi, 2rem); margin-bottom: 10px; }
 .merchChapter .paragraph { max-width: 56ch; color: var(--muted); }
@@ -349,22 +360,25 @@ body:not([data-shop]) .pdp__buy { display: none; }
 .specs dd { margin: 0; }
 
 /* ---- footer & misc ----------------------------------------------------------------------- */
-.site-footer { margin-top: clamp(48px, 8vw, 96px); padding: 32px var(--gutter); border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; text-align: center; }
-.not-found { min-height: 50vh; }
-/* Bottom right, fixed, on a white card whatever the theme: the NovaDB logo (novadb.svg, shared like this file) above the link to this demo's source on GitHub (github.svg). */
-.source {
-  position: fixed; right: 16px; bottom: 16px; z-index: 40; display: grid; grid-template-columns: 180px; justify-items: center; gap: 8px; padding: 12px 14px;
-  background: #fff; border-radius: var(--radius-small); box-shadow: var(--shadow); pointer-events: none;
-}
-.source::before { content: ""; width: 180px; height: 29px; background: url("/novadb.svg") center / contain no-repeat; }
-.source__repo {
-  display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; width: 100%; padding: 6px 10px; pointer-events: auto;
+/* The bottom padding keeps the end of the page clear of the logo fixed in the corner (`.source`), on a phone too. */
+.site-footer { display: grid; justify-items: center; gap: 14px; margin-top: clamp(48px, 8vw, 96px); padding: 32px var(--gutter) 88px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; text-align: center; }
+.site-footer p { margin: 0; }
+/* The link to this demo's source on GitHub (github.svg), below the line that names NovaDB. */
+.site-footer__repo {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 10px;
   color: #111; text-decoration: none; border: 1px solid #d0d5dc; border-radius: 999px; background: #f4f6f8;
   font: 600 0.75rem/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
-.source__repo::before { content: ""; width: 18px; height: 18px; flex: none; background: url("/github.svg") center / contain no-repeat; }
-.source__repo:hover { background: #111; border-color: #111; color: #fff; }
-.source__repo:hover::before { filter: invert(1); }
+.site-footer__repo::before { content: ""; width: 18px; height: 18px; flex: none; background: url("/github.svg") center / contain no-repeat; }
+.site-footer__repo:hover { background: #111; border-color: #111; color: #fff; }
+.site-footer__repo:hover::before { filter: invert(1); }
+.not-found { min-height: 50vh; }
+/* Bottom right, fixed, on a white card whatever the theme: the NovaDB logo (novadb.svg, shared like this file), nothing else. */
+.source {
+  position: fixed; right: 16px; bottom: 16px; z-index: 40; padding: 10px 14px;
+  background: #fff; border-radius: var(--radius-small); box-shadow: var(--shadow); pointer-events: none;
+}
+.source::before { content: ""; display: block; width: 136px; height: 22px; background: url("/novadb.svg") center / contain no-repeat; }
 
 @media (max-width: 1100px) {
   .site-header__inner { flex-wrap: wrap; }

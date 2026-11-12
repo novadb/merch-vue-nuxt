@@ -56,10 +56,10 @@ useHead({
     </div>
   </header>
   <main id="main"><slot /></main>
-  <footer v-if="text" class="site-footer">
-    <p v-html="text.poweredBy.html" />
+  <footer class="site-footer">
+    <p v-if="text" v-html="text.poweredBy.html" />
+    <a class="site-footer__repo" :href="`https://github.com/novadb/${REPO}`">{{ REPO }}</a>
   </footer>
-  <aside class="source">
-    <a class="source__repo" :href="`https://github.com/novadb/${REPO}`">{{ REPO }}</a>
-  </aside>
+  <!-- The NovaDB logo in the corner: decoration only, the footer's line names NovaDB in words. -->
+  <aside class="source" aria-hidden="true" />
 </template>

@@ -6,14 +6,20 @@
 import type { ContentNode } from "#shared/types/site";
 import { srcSet } from "#shared/utils/pictures";
 
-defineProps<{ node: ContentNode }>();
+// `sizes` of a picture: half a page beside text, but the chapter's text column when its figure stands straight in a chapter (site.css shows it wide there).
+const CONTENT_SIZES = "(min-width: 760px) 50vw, 100vw";
+const CHAPTER_SIZES = "(min-width: 1280px) 1024px, (min-width: 760px) 78vw, 100vw";
+
+const { node, sizes = CONTENT_SIZES } = defineProps<{ node: ContentNode; sizes?: string }>();
+// A chapter hands its size on to its children, a figure to its picture; any other group starts again.
+const childSizes = computed(() => (node.class === "merchChapter" ? CHAPTER_SIZES : node.class === "imageWithCaption" ? sizes : CONTENT_SIZES));
 </script>
 
 <template>
   <component :is="node.element" v-if="node.kind === 'group'" :class="node.class">
-    <ContentBlock v-for="(child, i) in node.children" :key="i" :node="child" />
+    <ContentBlock v-for="(child, i) in node.children" :key="i" :node="child" :sizes="childSizes" />
   </component>
-  <img v-else-if="node.kind === 'image'" :class="node.class" :src="node.src" :srcset="srcSet(node.src)" sizes="(min-width: 760px) 50vw, 100vw" alt="" loading="lazy">
+  <img v-else-if="node.kind === 'image'" :class="node.class" :src="node.src" :srcset="srcSet(node.src)" :sizes="sizes" alt="" loading="lazy">
   <component :is="node.element" v-else-if="node.kind === 'product'" :class="node.class"><ProductCard :product="node.product" /></component>
   <component :is="node.element" v-else-if="node.kind === 'teaser'" :class="node.class"><PageTeaser :target="node.target" /></component>
   <!-- `innerHTML`, not `v-html`: on a dynamic <component> Vue's server renderer drops v-html, the text would only appear after hydration. -->
