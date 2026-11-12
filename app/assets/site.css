@@ -383,7 +383,8 @@ body:not([data-shop]) .pdp__buy { display: none; }
 @media (max-width: 1100px) {
   .site-header__inner { flex-wrap: wrap; }
   .site-nav { order: 3; width: 100%; overflow-x: auto; }
-  .site-nav__sub { display: none; }
+  /* Two classes: `.site-nav ul` sets display: flex and would win, and a hidden dropdown would still make the scrolling nav scroll vertically. */
+  .site-nav .site-nav__sub { display: none; }
   .search { order: 4; max-width: none; flex-basis: 100%; margin: 0 0 12px; }
   .site-header__tools { margin-left: auto; }
 }
