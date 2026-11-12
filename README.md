@@ -1,0 +1,93 @@
+# Nova Merchandising — Vue + Nuxt
+
+The demo site of NovaDB as CMS and PIM in one, built with Nuxt 4 and Vue 3 in TypeScript: universal rendering, so every
+page is rendered on the server and then hydrated, and Vue takes over in the browser. Every page, product, price, picture
+and UI text is read live from NovaDB's Delivery API (branch `merchDemo`) with plain `$fetch`/`fetch` in Nitro server
+routes; there is no NovaDB package in between, and the Delivery login never leaves the server.
+
+Everything works without JavaScript: filters, sorting, "Show more" and search are real POST forms that the page answers
+with itself. With JavaScript, Vue components take over: the range updates in place (facets and sorting apply on change,
+cards that stay keep their element and picture, more cards load while scrolling), and the search box is a typeahead
+combobox. Shopify's own Buy Button and cart are started by a small client plugin.
+
+## Run
+
+```bash
+npm install
+npm run dev          # http://localhost:3000
+```
+
+Before the first start copy `.env.example` to `.env` and set `NOVA_DELIVERY_URL`, `NOVA_DELIVERY_USER` and
+`NOVA_DELIVERY_PASSWORD` to the Delivery API login of your NovaDB instance (`npm run dev` reads `.env`; `npm run start`
+and the container take the same variables from their environment). Optional: `DEMO_BRANCH` (default `merchDemo`),
+`SHOPIFY_DOMAIN` and `SHOPIFY_STOREFRONT_TOKEN` (public Buy Button token; without them there is no cart), `SITE_URL`
+(public origin for the absolute canonical and hreflang URLs; default: the ingress's `X-Forwarded-*` headers, which a
+client can forge, so set it in production), `PORT`, `MEDIA_CACHE_DIR`.
+
+Production: `npm run build`, then `npm run start` (port 3000), or the `Dockerfile`. Checks: `npm run typecheck`.
+
+Container: `uv run scripts/refresh-container.py --full` builds the `Dockerfile` and runs it at http://localhost:4001
+with the variables from the environment or `.env`.
+
+## Test
+
+The site passes the shared Playwright behaviour suite of the Nova Merchandising demos (Firefox): run it from its
+checkout with `BASE_URL=http://localhost:4001 npx playwright test`. The tests tagged `@shopify` (buy button, cart) need
+the Shopify variables.
+
+## How a request is answered
+
+1. `server/middleware/canonical-url.ts` redirects `/uk/shop/` to `/uk/shop` (one URL per page); `posted-form.ts` keeps
+   the fields of a posted form for the render.
+2. The page (`app/pages/[region]/[...path].vue`) loads its data with `useAsyncData`: `/api/site/{region}` (texts,
+   navigation) and `/api/page` (the page or product, the range for the posted form). On the server these calls are
+   function calls, not HTTP; the data goes into the page's payload.
+3. `server/api/*` read NovaDB through `server/utils/` and answer plain JSON (`shared/types/site.ts`).
+4. Vue renders the HTML; in the browser it hydrates from the payload, without asking the server again.
+
+## Where things are
+
+| Path | What |
+|---|---|
+| `NOVADB.md` | how the site reads NovaDB: the model, the Delivery API's concepts, what the site decided |
+| `server/utils/schema.ts` | every NovaDB name (branch, types, attributes, market variants) as API identifiers: the one place to change |
+| `server/utils/delivery.ts` | Delivery API client: Basic auth from the environment, 60 s cache |
+| `server/utils/labels.ts`, `shared/utils/texts.ts` | the UI texts, read from NovaDB's labels; turned into texts (plural forms, placeholders) |
+| `server/utils/site.ts` | page tree, URLs from `merchPageUrlSegment` + parent page, breadcrumb, category page of a group |
+| `server/utils/products.ts` | products, full-text filter, facets (counted on the server), sorting |
+| `server/utils/content.ts` | a page's Visual Document, resolved for rendering: links, embedded products and pages, pictures |
+| `server/utils/images.ts`, `media.ts`, `server/routes/media/` | picture URLs by content address; the `/media` proxy with disk cache and scaled WebP variants (`sharp`) |
+| `server/api/` | `site/{region}`, `page`, `search` (the pages' data), `suggest` (the typeahead's JSON) |
+| `server/routes/index.get.ts` | `/` → region by `Accept-Language` |
+| `shared/` | what server and browser both use: the data types, regions and prices, texts, picture URLs, range constants |
+| `app/pages/[region]/[...path].vue`, `search.vue`, `app/error.vue` | `/{region}/…` (a page or a product), the search page, 404 and error page |
+| `app/components/SiteShell.vue` | document, header, region switch, footer; every page wraps itself in it |
+| `app/components/VisualDocument.vue`, `ContentBlock.vue` | the Visual Document renderer |
+| `app/components/ProductRange.vue`, `FacetGroup.vue`, `ProductGrid.ts` | the live range: facets, sorting, cards, in place in the browser |
+| `app/components/SearchBox.vue` | the search form and its typeahead combobox |
+| `app/components/ProductCard.vue`, `PageTeaser.vue`, `ProductDetail.vue`, `Breadcrumbs.vue` | product card, page teaser, product page, breadcrumb |
+| `app/composables/` | site data and texts, the posted form, canonical and hreflang links |
+| `app/plugins/shopify.client.js` | Shopify's Buy Button and cart in the site's colours |
+| `app/assets/site.css`, `public/` | the stylesheet, fonts, icons, `robots.txt`: the same files in every demo |
+
+## Deviations
+
+From the shared contract (the reference's HTML and behaviour), because this demo hydrates:
+
+- **Much more JavaScript.** The other demos ship one script of about 17 KB (or none). This one ships Vue, Vue Router
+  and the Nuxt runtime: about 215 KB of JavaScript (80 KB gzipped) on every page, plus the payload: each page's HTML
+  also carries its data as JSON (`<script id="__NUXT_DATA__">`), so a page is about twice the size of the reference's.
+- **Nuxt's markup.** The page sits in `<div id="__nuxt">` (site.css has no rule on `body >`, so it looks the same), Vue
+  writes hydration comments (`<!--[-->`, `<!--]-->`, `<!---->`) between elements, and the head has Nuxt's scripts (an
+  import map, module preloads, the payload). Small equivalents in serialisation: the header's search input has
+  `value=""`, a swatch's style ends in `;`, an empty `alt` is written as `alt`. The product picture has no
+  `<link rel="preload">`.
+- **Typeahead markup.** The combobox attributes and the `ul.suggest` list appear after hydration, as with the shared
+  script; the list's ID comes from `useId()` (`suggest-v-0-0-1`), not a counter.
+- **`<body data-text>`** carries only the texts of Shopify's button and cart; the typeahead's texts come with the payload.
+- **The in-place range takes Nuxt's payload from the answer.** With JavaScript a filter change sends the same POST as
+  without and reads the new range from the answered page's payload, with Nuxt's `parsePayload`
+  (`#app/composables/payload`), an internal export that a Nuxt upgrade may move. Before a filter result is shown, the
+  missing pictures of its first batch (up to 12 cards) are loaded, not only those that end up on screen.
+- **Plain links.** Every navigation is a document load (`<a href>`, no `<NuxtLink>`): content links are the CMS's own
+  HTML, and each page's header and SEO links come from its server render. Vue Router is there because Nuxt's pages need it.

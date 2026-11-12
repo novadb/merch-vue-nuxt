@@ -1,0 +1,383 @@
+/* Nova Merchandising — the one stylesheet every demo shares unchanged.
+   Classes prefixed "merch" and the plain ones (headline, paragraph, caption, imageWithCaption, websiteImage, main)
+   come from the CMS (paragraph styles of the Visual Components); the rest is the site's own markup. */
+
+@font-face { font-family: "Inter"; src: url("/fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Fraunces"; src: url("/fonts/fraunces.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+
+/* @editor:start */
+:root {
+  color-scheme: light dark;
+  --bg: #f7f5f1;
+  --surface: #ffffff;
+  --sunken: #efece6;
+  --ink: #1d1c1a;
+  --muted: #6c675f;
+  --line: #e3dfd7;
+  --accent: #2f5d50;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2ece7;
+  --warm: #f3e7d6;
+  --inverse-bg: #1d1c1a;
+  --inverse-ink: #f4f1eb;
+  --image-blend: multiply;
+  --radius: 14px;
+  --radius-small: 8px;
+  --shadow: 0 1px 2px rgb(29 28 26 / 0.04), 0 8px 24px rgb(29 28 26 / 0.06);
+  --page: min(1200px, 100% - 2 * var(--gutter));
+  --gutter: clamp(16px, 4cqi, 40px);
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+}
+/* @editor:end */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131312;
+    --surface: #1c1b19;
+    --sunken: #242320;
+    --ink: #f1eee8;
+    --muted: #a29d93;
+    --line: #2f2d2a;
+    --accent: #8cc3ae;
+    --accent-ink: #10201a;
+    --accent-soft: #1f2e28;
+    --warm: #2a2118;
+    --inverse-bg: #ece8e0;
+    --inverse-ink: #1d1c1a;
+    --image-blend: normal;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
+  }
+}
+
+/* ---- base ---------------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1rem/1.6 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+/* @editor:start */
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--accent); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 500; line-height: 1.1; letter-spacing: -0.015em; margin: 0; }
+/* @editor:end */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+button, input, select { font: inherit; color: inherit; }
+
+.skip { position: absolute; left: -999px; top: 8px; z-index: 100; background: var(--surface); padding: 8px 14px; border-radius: var(--radius-small); }
+.skip:focus { left: 8px; }
+
+/* @editor:start */
+.button, .merchCta a {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 0.7em 1.3em; border: 1px solid var(--accent); border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 0.95rem;
+  text-decoration: none; cursor: pointer; transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.button:hover, .merchCta a:hover { color: var(--accent-ink); transform: translateY(-1px); }
+/* @editor:end */
+.button--ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.button--ghost:hover { color: var(--ink); border-color: var(--ink); }
+
+/* @editor:start */
+.badge {
+  display: inline-block; margin-left: 10px; padding: 2px 10px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); font: 600 0.75rem/1.6 var(--font-body); vertical-align: middle;
+}
+.badge--muted { background: var(--sunken); color: var(--muted); }
+/* @editor:end */
+
+/* ---- header -------------------------------------------------------------------------------- */
+.site-header {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.site-header__inner {
+  width: var(--page); margin: 0 auto; min-height: 68px;
+  display: flex; align-items: center; gap: clamp(12px, 2.5vw, 32px);
+}
+.logo { font: 600 1.25rem/1 var(--font-display); text-decoration: none; letter-spacing: -0.01em; white-space: nowrap; }
+.site-nav ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
+.site-nav > ul > li { position: relative; }
+.site-nav a { display: block; white-space: nowrap; padding: 8px 12px; border-radius: var(--radius-small); text-decoration: none; font-size: 0.95rem; }
+.site-nav a:hover { background: var(--sunken); color: var(--ink); }
+.site-nav__sub {
+  position: absolute; top: 100%; left: 0; min-width: 210px; flex-direction: column;
+  padding: 6px !important; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+  opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+}
+.site-nav li:hover > .site-nav__sub, .site-nav li:focus-within > .site-nav__sub { opacity: 1; visibility: visible; transform: none; }
+
+.search { position: relative; flex: 1 1 160px; max-width: 360px; margin-left: auto; }
+.search input[type="search"] {
+  width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a857c' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.5'/%3E%3Cpath d='m11 11 4 4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 15px center;
+}
+.search input[type="search"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.site-header__tools { display: flex; align-items: center; gap: 10px; flex: none; }
+.regions { display: flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 3px; }
+.regions__item { font-size: 0.85rem; font-weight: 600; line-height: 1; padding: 7px 11px; border-radius: 999px; color: var(--muted); text-decoration: none; }
+a.regions__item:hover { color: var(--ink); }
+.regions__item[aria-current] { background: var(--accent-soft); color: var(--ink); }
+
+/* ---- typeahead (built in the browser) --------------------------------------------------------- */
+.suggest {
+  position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 60; margin: 0; padding: 6px; list-style: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+  max-height: min(70vh, 480px); overflow: auto; min-width: 300px;
+}
+.suggest__heading { padding: 8px 10px 4px; color: var(--muted); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.suggest__option { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: var(--radius-small); cursor: pointer; }
+.suggest__option[aria-selected="true"], .suggest__option:hover { background: var(--sunken); }
+.suggest__option img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; mix-blend-mode: var(--image-blend); }
+.suggest__name { flex: 1; font-size: 0.95rem; }
+.suggest__price { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.suggest__all { font-weight: 600; color: var(--accent); }
+
+/* ---- page frame & CMS components --------------------------------------------------------- */
+/* A component sizes itself to the width of its page document (`.main`), not of the window: the CMS editor shows the same
+   document in a canvas of about 430 px, and there it must read as it does on a phone. `cqi` is 1 % of that width (the
+   window's on the site, where `.main` is as wide as the page), and @container stands in for @media. Rules for the
+   parts between the `@editor` markers are also built into the editor's stylesheet, each one
+   confined to `.main`: keep the markers, and between them nothing of the header, the range or the product page. */
+main { min-height: 60vh; }
+main > section, main > nav, main > article { width: var(--page); margin-inline: auto; }
+/* @editor:start */
+.main { container-type: inline-size; }
+.main > * { width: var(--page); margin-inline: auto; }
+
+.merchHero { padding: clamp(48px, 9cqi, 120px) 0 clamp(32px, 6cqi, 72px); }
+.merchHero > * { max-width: 980px; }
+.merchHero--compact { padding-bottom: 24px; }
+/* @editor:end */
+
+/* Breadcrumb above every page and product except the home page; the hero below it gives up the height it takes. */
+.crumbs ol { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 28px 0 0; padding: 0; color: var(--muted); font-size: 0.85rem; }
+.crumbs li + li::before { content: "/"; margin-right: 6px; opacity: 0.5; }
+.crumbs a { text-decoration: none; }
+.crumbs + .main > .merchHero:first-child { padding-top: clamp(24px, 6cqi, 72px); }
+
+/* @editor:start */
+.merchKicker { margin-block: 0 14px; color: var(--accent); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.merchDisplay { margin-block: 0; font: 400 clamp(2.6rem, 7cqi, 5.4rem)/1.02 var(--font-display); letter-spacing: -0.03em; }
+.merchLead { margin-block: 22px 0; max-width: 46ch; color: var(--muted); font-size: clamp(1.05rem, 1.6cqi, 1.25rem); line-height: 1.55; }
+.merchCta { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 30px 0; }
+/* Every link after the first is secondary: an outline in the colour of its surface. */
+.merchCta a + a { background: transparent; color: inherit; border-color: color-mix(in srgb, currentColor 35%, transparent); }
+.merchCta a + a:hover { color: inherit; border-color: currentColor; }
+
+.merchBand, .merchBandDark, .merchBandWarm, .merchBandAccent, .merchSplit, .merchSpecTable { margin-block: clamp(28px, 5cqi, 56px); }
+.merchBand { padding: clamp(28px, 5cqi, 56px); background: var(--surface); border-radius: calc(var(--radius) * 1.6); }
+.merchBandDark { padding: clamp(36px, 6cqi, 72px); background: var(--inverse-bg); color: var(--inverse-ink); border-radius: calc(var(--radius) * 1.6); }
+.merchBandWarm, .merchBandAccent { padding: clamp(32px, 6cqi, 64px); border-radius: calc(var(--radius) * 1.6); }
+.merchBandWarm { background: var(--warm); }
+.merchBandAccent { background: var(--accent); color: var(--accent-ink); }
+.merchBandDark .merchKicker { color: color-mix(in srgb, var(--inverse-ink) 60%, transparent); }
+.merchBandAccent .merchKicker { color: color-mix(in srgb, var(--accent-ink) 70%, transparent); }
+.merchBandDark .merchCta a:first-of-type { background: var(--inverse-ink); color: var(--inverse-bg); border-color: var(--inverse-ink); }
+.merchBandAccent .merchCta a:first-of-type { background: var(--accent-ink); color: var(--accent); border-color: var(--accent-ink); }
+.merchBandDark .merchDisplay { font-size: clamp(2rem, 5cqi, 3.6rem); }
+.merchBand .headline, .merchBandDark .headline, .merchBandWarm .headline, .merchBandAccent .headline { margin-bottom: 18px; font-size: clamp(1.6rem, 3.2cqi, 2.4rem); }
+.merchBand > .paragraph, .merchBandDark > .paragraph, .merchBandWarm > .paragraph, .merchBandAccent > .paragraph { max-width: 62ch; color: var(--muted); margin: 0 0 24px; }
+.merchBandDark > .paragraph { color: color-mix(in srgb, var(--inverse-ink) 75%, transparent); }
+.merchBandAccent > .paragraph { color: color-mix(in srgb, var(--accent-ink) 75%, transparent); }
+
+/* at most three columns: six teasers are 3 x 2, narrower screens fall back to 2 and 1 */
+.merchRail { --rail-gap: clamp(14px, 2cqi, 24px); display: grid; grid-template-columns: repeat(auto-fill, minmax(max(220px, (100% - 2 * var(--rail-gap)) / 3 - 0.5px), 1fr)); gap: var(--rail-gap); margin-top: 8px; }
+/* exactly four cards are a row of four, not three and a lonely one */
+.merchRail:has(> :nth-child(4):last-child) { grid-template-columns: repeat(auto-fill, minmax(max(200px, (100% - 3 * var(--rail-gap)) / 4 - 0.5px), 1fr)); }
+/* Narrower than a page: a rail of products is one row that scrolls sideways (no JS), the next card peeks in. */
+@container (max-width: 860px) {
+  .merchRail:has(> .merchProductCard) { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: calc((100% - var(--rail-gap)) / 2.3); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; padding-bottom: 14px; }
+  .merchRail:has(> .merchProductCard) > * { scroll-snap-align: start; }
+}
+.merchProductCard, .merchPageTeaser { min-width: 0; }
+.merchFeature { padding: 22px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: var(--radius); }
+.merchFeature .headline { font-size: 1.3rem; margin-bottom: 8px; }
+.merchFeature .paragraph { margin: 0; opacity: 0.8; font-size: 0.95rem; }
+.merchStatement { margin-block: 0; max-width: 30ch; font: 400 clamp(1.6rem, 3.6cqi, 2.6rem)/1.2 var(--font-display); letter-spacing: -0.02em; }
+.merchMarquee { overflow: hidden; white-space: nowrap; font: 400 clamp(1.4rem, 3cqi, 2.2rem)/1 var(--font-display); color: var(--muted); }
+
+/* Media beside text; the order of the two halves is the side (text first puts the picture on the right). A product card
+   in the media half is shown large. Stacked, the media half always comes first. */
+.merchSplit { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(24px, 5cqi, 64px); align-items: center; }
+.merchSplit > .merchSplitMedia { order: -1; }
+@container (min-width: 761px) {
+  .merchSplit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .merchSplit > .merchSplitMedia { order: 0; }
+}
+.merchSplitMedia > .merchProductCard { max-width: 440px; margin-inline: auto; }
+.merchSplitText .headline { font-size: clamp(1.7rem, 3.4cqi, 2.6rem); margin-bottom: 16px; }
+.merchSplitText .paragraph { color: var(--muted); max-width: 52ch; }
+.merchBandDark .merchSplitText .paragraph { color: color-mix(in srgb, var(--inverse-ink) 75%, transparent); }
+.merchBandAccent .merchSplitText .paragraph { color: color-mix(in srgb, var(--accent-ink) 80%, transparent); }
+/* a split inside a band or a chapter sits closer to its neighbours */
+:is(.merchBand, .merchBandDark, .merchBandWarm, .merchBandAccent, .merchChapter) .merchSplit { margin-block: clamp(20px, 4cqi, 40px); }
+
+.imageWithCaption { margin: 0; }
+.websiteImage { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius); background: var(--sunken); mix-blend-mode: var(--image-blend); }
+.caption { margin: 10px 0 0; color: var(--muted); font-size: 0.85rem; }
+.headline { font-size: clamp(1.6rem, 3cqi, 2.2rem); }
+.paragraph { margin-block: 0 1em; }
+
+.merchSpecTable { overflow-x: auto; }
+.merchSpecTable table { width: 100%; border-collapse: collapse; border: 0 !important; font-size: 0.95rem; }
+.merchSpecTable th, .merchSpecTable td { padding: 14px 16px; text-align: left; border: 0; border-bottom: 1px solid var(--line); }
+.merchSpecTable th { color: var(--muted); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+
+/* A hero with a picture: text left, picture right (the picture is shown half a page wide). The first and last row
+   are flexible, so the text stays centred however tall the picture is. */
+.merchHero .imageWithCaption { margin-top: 28px; }
+@container (min-width: 860px) {
+  .merchHero:has(.imageWithCaption) { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-rows: 1fr repeat(5, auto) 1fr; column-gap: clamp(24px, 5cqi, 72px); }
+  .merchHero:has(.imageWithCaption)::before { content: ""; grid-area: 1 / 1; }
+  .merchHero:has(.imageWithCaption)::after { content: ""; grid-area: 7 / 1; }
+  .merchHero:has(.imageWithCaption) > * { grid-column: 1; max-width: none; }
+  .merchHero:has(.imageWithCaption) > .imageWithCaption { grid-column: 2; grid-row: 1 / -1; margin-top: 0; }
+  .merchHero:has(.imageWithCaption) > .merchLead { max-width: 46ch; }
+}
+
+/* A line of code with a prompt and a blinking cursor. */
+.merchTerminal { width: fit-content; max-width: 100%; margin: 28px 0 0; padding: 14px 20px; border-radius: var(--radius-small); background: #0f1714; color: #b9efd3; font: 500 0.95rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.merchTerminal::before { content: "$ "; opacity: 0.55; }
+.merchTerminal::after { content: "\2588"; margin-left: 2px; animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* A slogan strip that runs across the page (still and wrapped on a narrow page or for reduced motion). */
+.merchMarquee { margin-block: 20px; animation: marquee 28s linear infinite; }
+@keyframes marquee { from { text-indent: 100%; } to { text-indent: -100%; } }
+@container (max-width: 700px) { .merchMarquee { animation: none; white-space: normal; } }
+@media (prefers-reduced-motion: reduce) { .merchMarquee { animation: none; white-space: normal; } .merchTerminal::after { animation: none; } }
+
+/* Chapters set straight into the page (kicker, headline, split, rail, without a band): air between them. */
+.main > .merchKicker { margin-top: clamp(48px, 8cqi, 96px); }
+.main > .merchRail { margin-bottom: clamp(24px, 4cqi, 48px); }
+
+/* A chapter: the kicker is its label (a time, a number, a year) and stays beside the chapter while it scrolls past.
+   `!important` on the position: the editor sets `position: relative` inline on every text it lets one edit. */
+.merchChapter { display: grid; grid-template-columns: clamp(4.5rem, 12cqi, 8rem) minmax(0, 1fr); column-gap: clamp(20px, 4cqi, 48px); padding-block: clamp(24px, 4cqi, 44px); border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
+.merchChapter > .merchKicker { grid-area: 1 / 1 / span 6; align-self: start; position: sticky !important; top: 100px; margin: 0; font: 400 clamp(1.6rem, 3.4cqi, 2.6rem)/1 var(--font-display); letter-spacing: -0.02em; text-transform: none; }
+.merchChapter > :not(.merchKicker) { grid-column: 2; }
+.merchChapter .headline { font-size: clamp(1.4rem, 2.6cqi, 2rem); margin-bottom: 10px; }
+.merchChapter .paragraph { max-width: 56ch; color: var(--muted); }
+@container (max-width: 760px) {
+  .merchChapter { grid-template-columns: minmax(0, 1fr); }
+  .merchChapter > .merchKicker { grid-area: auto; position: static !important; top: auto; margin-bottom: 8px; }
+  .merchChapter > :not(.merchKicker) { grid-column: 1; }
+}
+/* @editor:end */
+
+/* ---- teasers & product cards ------------------------------------------------------------- */
+/* @editor:start */
+.page-teaser {
+  position: relative; display: block; overflow: hidden; border-radius: var(--radius); background: var(--sunken);
+  text-decoration: none; aspect-ratio: 4 / 5; isolation: isolate;
+}
+.page-teaser img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; mix-blend-mode: var(--image-blend); }
+.page-teaser::after { content: ""; position: absolute; inset: 40% 0 0; background: linear-gradient(transparent, rgb(20 19 17 / 0.72)); z-index: 1; }
+.page-teaser__title { position: absolute; left: 20px; right: 20px; bottom: 18px; z-index: 2; color: #fff; font: 500 1.5rem/1.15 var(--font-display); }
+.page-teaser:hover img { transform: scale(1.04); }
+:is(.merchBand, .merchBandDark, .merchBandWarm, .merchBandAccent) > .merchPageTeaser { max-width: 320px; }
+.page-teaser:hover { color: inherit; }
+
+/* @editor:end */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: clamp(16px, 2.4vw, 28px); }
+/* @editor:start */
+.product-card__link { display: block; text-decoration: none; }
+.product-card__link:hover { color: inherit; }
+.product-card__media { overflow: hidden; border-radius: var(--radius); background: var(--sunken); aspect-ratio: 1; }
+.product-card__media img { width: 100%; height: 100%; object-fit: cover; mix-blend-mode: var(--image-blend); transition: transform 0.5s ease; }
+.product-card__link:hover img { transform: scale(1.05); }
+.product-card__name { margin: 14px 0 2px; font: 500 1.05rem/1.3 var(--font-body); letter-spacing: 0; }
+.product-card__meta { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.product-card__price { margin: 6px 0 0; font-weight: 600; }
+.merchBandDark .product-card__meta { color: color-mix(in srgb, var(--inverse-ink) 65%, transparent); }
+.merchBandAccent .product-card__meta { color: color-mix(in srgb, var(--accent-ink) 75%, transparent); }
+/* @editor:end */
+
+/* ---- range: facets + grid ---------------------------------------------------------------- */
+.range { display: grid; grid-template-columns: 240px 1fr; gap: clamp(24px, 4vw, 48px); margin-block: clamp(32px, 5vw, 64px); align-items: start; scroll-margin-top: 90px; }
+.facets { position: sticky; top: 92px; display: grid; gap: 22px; }
+.facet { margin: 0; padding: 0; border: 0; display: grid; gap: 4px; }
+.facet legend { margin-bottom: 8px; padding: 0; color: var(--muted); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.facet__option { display: flex; align-items: center; gap: 10px; padding: 4px 0; cursor: pointer; font-size: 0.95rem; }
+.facet__option input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.facet__option:has(input:disabled) { opacity: 0.45; cursor: default; }
+.facet__count { margin-left: auto; color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.facet--price { grid-template-columns: 1fr 1fr; gap: 10px; }
+.facet--price legend { grid-column: 1 / -1; }
+.facet--price label { display: grid; gap: 4px; font-size: 0.8rem; color: var(--muted); }
+.facet--price input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-small); background: var(--surface); }
+.facets__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 20px; border-top: 1px solid var(--line); }
+.facets__actions .button { justify-content: center; padding: 0.6em 0.5em; font-size: 0.85rem; white-space: nowrap; }
+.range__bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.range__count { margin: 0; color: var(--muted); }
+.range__sort { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--muted); }
+.range__sort select { padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); }
+.range__more { display: flex; width: fit-content; margin: clamp(28px, 4vw, 44px) auto 0; }
+.range__empty { padding: 48px; text-align: center; color: var(--muted); background: var(--surface); border-radius: var(--radius); }
+
+/* The colour is PIM data (merchColorHex), set inline as --swatch: a new colour needs no CSS. */
+.swatch { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgb(0 0 0 / 0.15); flex: none; background: var(--swatch, transparent); }
+
+.search--large { display: flex; gap: 10px; max-width: 640px; margin: 28px 0 0; }
+.search--large input[type="search"] { padding-block: 14px; font-size: 1.05rem; }
+.search-pages { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 18px; color: var(--muted); font-size: 0.95rem; }
+
+/* ---- product page ------------------------------------------------------------------------ */
+.pdp { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 72px); margin-block: 28px clamp(32px, 6vw, 72px); align-items: start; }
+.pdp__media { overflow: hidden; border-radius: calc(var(--radius) * 1.6); background: var(--sunken); }
+.pdp__media img { width: 100%; aspect-ratio: 1; object-fit: cover; mix-blend-mode: var(--image-blend); }
+.pdp__info { position: sticky; top: 100px; }
+.pdp__name { font: 400 clamp(2.2rem, 4.6vw, 3.6rem)/1.05 var(--font-display); letter-spacing: -0.025em; }
+.pdp__price { margin: 18px 0 0; font-size: 1.5rem; font-weight: 600; }
+.pdp__buy { margin-top: 24px; min-height: 52px; }
+body:not([data-shop]) .pdp__buy { display: none; }
+.pdp__description { margin-top: 24px; color: var(--muted); }
+.pdp__description p { margin: 0 0 1em; }
+.specs { display: grid; margin: 28px 0 0; border-top: 1px solid var(--line); }
+.specs > div { display: grid; grid-template-columns: 140px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.specs dt { color: var(--muted); font-size: 0.9rem; }
+.specs dd { margin: 0; }
+
+/* ---- footer & misc ----------------------------------------------------------------------- */
+.site-footer { margin-top: clamp(48px, 8vw, 96px); padding: 32px var(--gutter); border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; text-align: center; }
+.not-found { min-height: 50vh; }
+/* Bottom right, fixed, on a white card whatever the theme: the NovaDB logo (novadb.svg, shared like this file) above the link to this demo's source on GitHub (github.svg). */
+.source {
+  position: fixed; right: 16px; bottom: 16px; z-index: 40; display: grid; grid-template-columns: 180px; justify-items: center; gap: 8px; padding: 12px 14px;
+  background: #fff; border-radius: var(--radius-small); box-shadow: var(--shadow); pointer-events: none;
+}
+.source::before { content: ""; width: 180px; height: 29px; background: url("/novadb.svg") center / contain no-repeat; }
+.source__repo {
+  display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; width: 100%; padding: 6px 10px; pointer-events: auto;
+  color: #111; text-decoration: none; border: 1px solid #d0d5dc; border-radius: 999px; background: #f4f6f8;
+  font: 600 0.75rem/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.source__repo::before { content: ""; width: 18px; height: 18px; flex: none; background: url("/github.svg") center / contain no-repeat; }
+.source__repo:hover { background: #111; border-color: #111; color: #fff; }
+.source__repo:hover::before { filter: invert(1); }
+
+@media (max-width: 1100px) {
+  .site-header__inner { flex-wrap: wrap; }
+  .site-nav { order: 3; width: 100%; overflow-x: auto; }
+  .site-nav__sub { display: none; }
+  .search { order: 4; max-width: none; flex-basis: 100%; margin: 0 0 12px; }
+  .site-header__tools { margin-left: auto; }
+}
+@media (max-width: 860px) {
+  .range { grid-template-columns: 1fr; }
+  .facets { position: static; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .facets__actions { grid-column: 1 / -1; max-width: 360px; }
+  .pdp { grid-template-columns: 1fr; }
+  .pdp__info { position: static; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }

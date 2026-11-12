@@ -1,0 +1,17 @@
+# Demo site: blocked for every crawler, nothing is indexed.
+User-agent: *
+Disallow: /
+
+# Principle for a live site (crawl budget): crawl only the clean page URLs, never the endless
+# variants a visitor can create. To open the site, delete "Disallow: /" above and use these rules instead:
+#
+#   Disallow: /*/search    internal search results
+#   Disallow: /api/        typeahead JSON
+#
+# The site supports this: it creates no URL with a query string. Filters, sorting and search are POST
+# forms, so a filtered or sorted view has no URL of its own and crawlers find nothing to follow.
+#
+# Query strings are deliberately not blocked. They only come from outside (tracking parameters on
+# links to the site), and every page names its query-free URL as rel="canonical". A crawler has to
+# fetch such a URL to read that canonical and credit the link to the clean page; a Disallow rule
+# for query strings would prevent exactly that.
