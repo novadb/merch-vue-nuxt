@@ -58,6 +58,7 @@ async function update(form: HTMLFormElement, submitter: HTMLElement | null = nul
     next = await post(form, submitter, request.signal);
   } catch (error) {
     if ((error as Error).name === "AbortError") return;
+    console.warn(error);
   }
   if (!next) {
     native = true;
@@ -88,6 +89,7 @@ async function more(form: HTMLFormElement, button: HTMLButtonElement) {
     next = await post(form, button, request.signal);
   } catch (error) {
     if ((error as Error).name === "AbortError") return void (loading.value = false); // a filter change took over
+    console.warn(error);
   }
   const shown = props.range.items.length;
   if (!next || next.range.items.length <= shown) {

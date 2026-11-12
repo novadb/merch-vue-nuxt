@@ -1,6 +1,7 @@
 /** Thin client for NovaDB's Delivery API: Basic auth from the environment, a short in-memory cache. Server only: the login never reaches the browser. */
 import { BRANCH } from "./schema";
 
+/** The `props` of a Delivery object: attribute API identifier → value. `any`, because the wire shape depends on the attribute (string, number, ID, list of IDs, `{ XML }`). */
 export type Props = Record<string, any>;
 export type NovaObject = { meta: { id: number; apiIdentifier?: string }; props: Props };
 type ListResponse = { objs: NovaObject[]; refs?: NovaObject[]; more: boolean };
@@ -34,7 +35,7 @@ function deliveryUrl(path: string, params: Record<string, string | number | unde
 /** Absolute URL of a route outside the branch, e.g. `files/{md5}{extension}`. */
 export const instanceUrl = (path: string) => new URL(path, env("NOVA_DELIVERY_URL")).toString();
 
-/** Raw fetch with auth, for the media proxy. */
+/** Fetch with Basic auth, neither cached nor parsed: for the media proxy and `getJson`. */
 export function deliveryFetch(url: string, headers: Record<string, string> = {}): Promise<Response> {
   return fetch(url, { headers: { ...headers, Authorization: authHeader() } });
 }
@@ -53,7 +54,11 @@ async function getJson<T>(url: string): Promise<T> {
   return value;
 }
 
-/** `props`: 0 (default) the type's API attributes, 1 every named attribute (needed for NovaDB's own types). `resolve`: reference attributes whose targets arrive in `refs`. */
+/**
+ * `props`: 0 (default) the type's API attributes, 1 every named attribute (needed for NovaDB's own types). `resolve`: reference attributes whose targets arrive in `refs`.
+ * `variants`: the market member (`MARKET_VARIANT`) whose price the read returns; without it a product has no price.
+ * `filter` and `sort` are Delivery expressions (`$score` sorts a full-text filter by relevance).
+ */
 export type ListQuery = { lang: string; filter?: string; sort?: string; take?: number; variants?: string; props?: 0 | 1; resolve?: string };
 
 /**

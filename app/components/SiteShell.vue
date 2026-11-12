@@ -4,7 +4,7 @@ import type { Alternates } from "#shared/types/site";
 import { HTML_LANG, REGION_LABEL, REGIONS } from "#shared/utils/regions";
 import { t } from "#shared/utils/texts";
 
-/** This demo's repository on GitHub (`github.com/novadb/<REPO>`), linked from the corner of every page. */
+/** This demo's repository on GitHub (`github.com/novadb/<REPO>`), linked from the footer of every page. */
 const REPO = "merch-vue-nuxt";
 
 defineProps<{ alternates?: Alternates }>();

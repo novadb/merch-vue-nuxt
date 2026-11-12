@@ -15,9 +15,9 @@ export default defineEventHandler(async (event): Promise<Suggestions> => {
   const productFilter = q.length >= 2 ? searchFilter(q, PRODUCT_SEARCH_FIELDS) : undefined;
   if (!productFilter) return { products: [], pages: [] };
 
-  const [products, pages] = await Promise.all([loadProducts(region, productFilter, "$score"), searchPages(region, q, 3)]);
+  const [products, pages] = await Promise.all([loadProducts(region, productFilter, "$score", 5), searchPages(region, q, 3)]);
   return {
-    products: products.slice(0, 5).map((p) => ({ name: p.name, url: p.url, image: p.image ? smallSrc(p.image) : null, price: formatPrice(p.price, region) })),
+    products: products.map((p) => ({ name: p.name, url: p.url, image: p.image ? smallSrc(p.image) : null, price: formatPrice(p.price, region) })),
     pages: pages.map((p) => ({ title: p.title, url: p.url })),
   };
 });

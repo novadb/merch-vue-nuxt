@@ -47,14 +47,17 @@ async function highlight(index: number) {
 
 async function load(q: string) {
   controller?.abort();
-  controller = new AbortController();
+  const request = (controller = new AbortController());
   try {
     const body = new URLSearchParams({ lang: region, q }); // POST: no URL carries a query string
-    result.value = { ...(await $fetch<Suggestions>(SUGGEST, { method: "POST", body, signal: controller.signal })), q };
+    result.value = { ...(await $fetch<Suggestions>(SUGGEST, { method: "POST", body, signal: request.signal })), q };
     active.value = -1;
     open.value = true;
   } catch (error) {
-    if ((error as Error).name !== "AbortError") close();
+    // $fetch wraps an abort in a FetchError, so the name says nothing: a newer keystroke took over when this call's signal is aborted.
+    if (request.signal.aborted) return;
+    close();
+    console.error(error);
   }
 }
 

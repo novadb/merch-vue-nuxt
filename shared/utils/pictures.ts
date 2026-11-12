@@ -9,7 +9,7 @@ function scalable(src: string): string | undefined {
   return name?.endsWith(".svg") ? undefined : name;
 }
 
-/** `srcset` of a picture URL: all its scaled variants. */
+/** `srcset` of a picture URL: all its scaled variants; undefined for SVG and for a URL that is not a media file. */
 export function srcSet(src: string): string | undefined {
   const name = scalable(src);
   return name && MEDIA_WIDTHS.map((w) => `/media/${w}/${name} ${w}w`).join(", ");

@@ -14,7 +14,7 @@ Usage (in the pipeline; no dependencies, so plain python3 is enough):
   python3 scripts/check-pull-request.py [--denylist terms.txt]
 It reads the pull request through the REST API with the run's access token, from the variables the host sets in the
 environment: SYSTEM_ACCESSTOKEN (map it explicitly), SYSTEM_COLLECTIONURI, SYSTEM_TEAMPROJECT, BUILD_REPOSITORY_ID and
-SYSTEM_PULLREQUEST_PULLREQUESTID. Exit code 1 on findings, 2 on a usage or environment error.
+SYSTEM_PULLREQUEST_PULLREQUESTID. Exit code 1 on findings or an environment error, 2 on a usage error.
 """
 import argparse
 import importlib.util

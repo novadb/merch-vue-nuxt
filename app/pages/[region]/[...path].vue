@@ -10,6 +10,7 @@ const route = useRoute();
 const region = useRegion();
 const path = [route.params.path].flat().join("/");
 const form = usePostedForm();
+// The keys "page" and "site" are read again by name in ProductRange.vue and useTexts(): keep them together.
 const [site, { data: page, error }] = await Promise.all([
   useSite(),
   useAsyncData("page", () => $fetch<PageData>("/api/page", { method: "POST", body: { region, path, form } })),

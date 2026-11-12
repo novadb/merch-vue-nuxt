@@ -1,7 +1,8 @@
 /**
  * Every NovaDB name the site depends on, in one place. IDs of branches and object types differ from installation to
- * installation, API identifiers do not, so the code addresses everything by identifier. The identifiers carry the
- * prefix `merch` because they must be unique across branches.
+ * installation, API identifiers do not, so the code addresses everything by identifier. The site's own identifiers carry
+ * the prefix `merch` because they must be unique across branches; NovaDB's own (`image`, `typeAttribute`,
+ * `attributeName`, the file attributes) do not.
  *
  * The Delivery API serves an identifier with a lower-case first letter, which is why the keys below start in lower case.
  * A numeric ID belongs here too (as a named constant with a comment) if one is ever unavoidable; today there is none.

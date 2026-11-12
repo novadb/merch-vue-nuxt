@@ -1,6 +1,7 @@
 <!--
   One component of a Visual Document, in the element and with the class the CMS names. An embedded object is wrapped in
   the component's own element, as the CMS does: the editor's stylesheet (built from site.css) then matches the same DOM.
+  It renders by kind, element and class only; the closed set of component classes lives in the CMS, not here.
 -->
 <script setup lang="ts">
 import type { ContentNode } from "#shared/types/site";

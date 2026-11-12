@@ -7,6 +7,7 @@ definePageMeta({ validate: (route) => isRegion(route.params.region) });
 
 const region = useRegion();
 const form = usePostedForm();
+// The keys "search" and "site" are read again by name in ProductRange.vue and useTexts(): keep them together.
 const [site, { data, error }] = await Promise.all([
   useSite(),
   useAsyncData("search", () => $fetch<SearchData>("/api/search", { method: "POST", body: { region, form } })),

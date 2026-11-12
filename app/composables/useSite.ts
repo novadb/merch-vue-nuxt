@@ -9,10 +9,11 @@ export const useRegion = (): Region => regionOfPath(useRoute().path);
 /** Loads the site data of the page's region, once per document: on the server, the browser takes it from the payload. */
 export const useSite = () => {
   const region = useRegion();
+  // `useTexts()` finds this data again by the key "site".
   return useAsyncData("site", () => $fetch<SiteData>(`/api/site/${region}`));
 };
 
-/** The UI texts of the page's region. The page has loaded them (`useSite`) before any component asks. */
+/** The UI texts of the page's region. Needs `useSite()` to have run first: it reads that data by its key "site". */
 export function useTexts(): ComputedRef<Texts> {
   const { data } = useNuxtData<SiteData>("site");
   return computed(() => {

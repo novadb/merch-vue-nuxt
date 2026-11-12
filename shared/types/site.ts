@@ -29,12 +29,15 @@ export type Product = {
   /** Colour, materials and finishes are PIM objects, held by ID as a string: the value of their facet checkbox; names and swatches come with the labels. */
   color?: string;
   materials: string[];
+  /** Cup volume in ml. */
   volume?: number;
   /** Sticker finishes, pieces per set, laptop sleeve screen size in inches. */
   finishes: string[];
   pieces?: number;
   screenSize?: number;
+  /** Amount in the region's currency; undefined: no price in its market. */
   price?: number;
+  /** `false` is sold out; not set: shown as available, but not counted by the in-stock filter. */
   inStock?: boolean;
   /** `/media/{md5}{ext}` of the first picture. */
   image?: string;

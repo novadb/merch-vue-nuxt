@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Single source of truth for coding agents in this repository; `CLAUDE.md` only imports it. A line stays only if an agent would decide wrongly without it. Why a piece of code is the way it is belongs in a comment at that code, not here.
+Single source of truth for coding agents in this repository; `CLAUDE.md` only imports it. A line stays only if an agent would decide wrongly without it.
 
 ## Project
 
@@ -41,6 +41,7 @@ Before touching `server/utils/` or the content components read `NOVADB.md`: the 
 - Change only what the task needs; list unrelated findings at the end of your answer (`file:line`).
 - Ask before adding a dependency or touching `Dockerfile` or deploy configuration.
 - Imports: our own modules (`#shared/…`, `server/utils/…`) are imported explicitly, so a reader can follow them; Nuxt, Vue and h3 functions, `app/composables/` and `app/components/` are auto-imported, as Nuxt intends.
+- Comments say why the code is this way (a constraint of NovaDB, the framework, browser or contract) or what a name stands for, true for a reader who never saw an earlier version. A declaration other files use gets a doc comment when name and type leave something open (a unit, what a missing value means); a file header or one comment for a group may cover several. Never what the code plainly does or how it changed: that goes in the pull request. No TODO, no commented-out code; test names likewise.
 
 ## Where the code does not say why
 
@@ -49,10 +50,10 @@ Before touching `server/utils/` or the content components read `NOVADB.md`: the 
 - `ProductGrid.ts` keeps the card elements itself in the browser (Vue renders them only on the server): a card that leaves the result and comes back must be the same element. Do not turn it into a `v-for`.
 - Navigation is a document load (`<a href>`), never `<NuxtLink>`: header and SEO links come from each page's server render, content links are CMS HTML.
 - On a dynamic `<component :is>`, use `:innerHTML`, not `v-html`: Vue's server renderer drops the latter and the text appears only after hydration.
-- The HTML must match the other demos' DOM, plus what Nuxt adds (README, "Deviations"). Keep inline content (a price and its badge) on one template line, or Vue adds a space.
-- `app/assets/site.css`, `NOVADB.md` and everything in `public/` (`favicon.svg`, `novadb.svg`, `github.svg`, `robots.txt`, the fonts) are the same files in every demo, kept identical from outside this repository: never adapt them. `site.css` is also the CMS editor's stylesheet. The other demos' `site.js` is not used here on purpose; its behaviour lives in the components.
+- The HTML structure is a contract that every implementation of this site shares, plus what Nuxt adds (README, "Deviations"). Keep inline content (a price and its badge) on one template line, or Vue adds a space.
+- `app/assets/site.css`, `NOVADB.md` and everything in `public/` (`favicon.svg`, `novadb.svg`, `github.svg`, `robots.txt`, the fonts) are shared files, kept identical from outside this repository: never adapt them. `site.css` is also the CMS editor's stylesheet. The shared client script (`site.js`) is not used here on purpose; its behaviour lives in the components.
 - Page content is made from a closed set of components (classes `merch*`): compose, or follow the structure with CSS, before asking for a new one.
-- The shop is Shopify's own Buy Button and cart, started in `app/plugins/shopify.client.js` from a product's `data-shopify-product`; that file is the Shopify part of the other demos' `site.js`, unchanged (plain JavaScript, so it stays comparable): change it only together with them. Without `SHOPIFY_DOMAIN` and `SHOPIFY_STOREFRONT_TOKEN` there are no buy buttons and no cart, silently: keep both in `.env`.
+- The shop is Shopify's own Buy Button and cart, started in `app/plugins/shopify.client.js` from a product's `data-shopify-product`; that file is the shared client script's Shopify part, unchanged (plain JavaScript, so it stays comparable): change it only together with it. Without `SHOPIFY_DOMAIN` and `SHOPIFY_STOREFRONT_TOKEN` there are no buy buttons and no cart, silently: keep both in `.env`.
 
 ## Git
 

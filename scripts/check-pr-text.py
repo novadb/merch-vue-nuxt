@@ -149,6 +149,7 @@ def scan(text: str, denylist: list[str]) -> list[Finding]:
 
 
 def read_denylist(path: str | None) -> list[str] | None:
+    """The terms of the denylist file, without blank lines and `#` comments; None without a path (internal names then stay unchecked). Exits if the file is missing."""
     if not path:
         return None
     file = Path(path)
@@ -158,7 +159,7 @@ def read_denylist(path: str | None) -> list[str] | None:
     return [t for t in terms if t and not t.startswith("#")]
 
 
-# Each case: a name, a text, and the error codes it must produce ({} = a clean message with no warning either).
+# Each case: a name, a text, and the error codes it must produce (set() = a clean message with no warning either).
 GOOD = "Add region-aware cart prices\n\nThe cart now shows the price of the visitor's region.\nPrices come from the product record, one value per market.\n"
 CASES = [
     ("good", GOOD, set()),

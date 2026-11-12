@@ -41,7 +41,11 @@ export function resolveDocument(root: VNode, lookup: Lookup): ContentRoot {
 
 const resolveChildren = (node: VNode, lookup: Lookup): ContentNode[] => (node.children ?? []).flatMap((child) => resolveNode(child, lookup) ?? []);
 
-/** A node of the document, or nothing where what it embeds is gone (an unpublished product, a picture without a file). */
+/**
+ * A node of the document, or nothing where what it embeds is gone (an unpublished product, a picture without a file).
+ * The renderer knows a node by kind, element and class (`site.css` styles the class); the node's `definition` is not
+ * passed on, the closed set of component classes is kept in the CMS.
+ */
 function resolveNode(node: VNode, lookup: Lookup): ContentNode | undefined {
   const element = node.element || "div";
   switch (node.type) {

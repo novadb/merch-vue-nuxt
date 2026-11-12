@@ -33,9 +33,12 @@ function toProduct(o: NovaObject, region: Region, images: Map<number, string>): 
   };
 }
 
-/** Every product matching a Delivery filter, priced in the region's market; the pictures arrive in the same response (`resolve`). */
-export async function loadProducts(region: Region, filter?: string, sort?: string): Promise<Product[]> {
-  const { objs, refs } = await list(TYPE.product, { lang: CULTURE[region], variants: MARKET_VARIANT[MARKET[region]], filter, sort, resolve: PRODUCT.images });
+/**
+ * Every product matching a Delivery filter, or the first `take` of them (one request), priced in the region's market; the
+ * pictures arrive in the same response (`resolve`). Products without a name or URL segment are dropped after the read.
+ */
+export async function loadProducts(region: Region, filter?: string, sort?: string, take?: number): Promise<Product[]> {
+  const { objs, refs } = await list(TYPE.product, { lang: CULTURE[region], variants: MARKET_VARIANT[MARKET[region]], filter, sort, take, resolve: PRODUCT.images });
   const images = toImages(refs);
   return objs.filter((o) => o.props[PRODUCT.name] && o.props[PRODUCT.urlSegment]).map((o) => toProduct(o, region, images));
 }

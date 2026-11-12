@@ -15,9 +15,9 @@ type Body = { region: string; path: string; form: string };
 export default defineEventHandler(async (event): Promise<PageData> => {
   const { region, path, form } = await readBody<Body>(event);
   if (!isRegion(region)) throw createError({ statusCode: 404 });
-  const [site, otherSite] = await Promise.all([loadSite(region), loadSite(OTHER_LANGUAGE_REGION[region])]);
+  const site = await loadSite(region);
   const page = site.byPath.get(path);
-  return page ? pageData(site, otherSite, page, region, new URLSearchParams(form)) : productData(site, region, path);
+  return page ? pageData(site, page, region, new URLSearchParams(form)) : productData(site, region, path);
 });
 
 /** The same content in every region: `own` is the path (without region) in the content language of `region`, `other` in the other one. */
@@ -30,15 +30,16 @@ function alternatesOf(region: Region, own: string | undefined, other: string | u
   return result;
 }
 
-async function pageData(site: Site, otherSite: Site, page: Page, region: Region, form: URLSearchParams): Promise<PageData> {
+async function pageData(site: Site, page: Page, region: Region, form: URLSearchParams): Promise<PageData> {
   const embeddedIds = [...referencedIds(page.content)].filter((ref) => !site.pages.has(ref));
   const wantedImages = imageIds(page.content); // plus the teaser picture of every page
   for (const p of site.pages.values()) if (p.imageId) wantedImages.add(p.imageId);
-  const [embedded, range, images, groupNames] = await Promise.all([
+  const [embedded, range, images, groupNames, otherSite] = await Promise.all([
     productsByIds(embeddedIds, region),
     page.groupRefs.length ? loadProducts(region, `${PRODUCT.group} = ${page.groupRefs.join(", ")}`) : [],
     imagesByIds([...wantedImages]),
     loadGroups(region),
+    loadSite(OTHER_LANGUAGE_REGION[region]), // for the hreflang alternates
   ]);
   const targets = new Map<number, Link>();
   for (const p of site.pages.values()) targets.set(p.id, { url: p.url, title: p.title, image: p.imageId ? images.get(p.imageId) : undefined });
