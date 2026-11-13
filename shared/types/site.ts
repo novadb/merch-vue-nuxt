@@ -39,7 +39,7 @@ export type Product = {
   price?: number;
   /** `false` is sold out; not set: shown as available, but not counted by the in-stock filter. */
   inStock?: boolean;
-  /** `/media/{md5}{ext}` of the first picture. */
+  /** `/media/{md5}/original{ext}` of the first picture. */
   image?: string;
   groupId?: number;
   descriptionHtml?: string;

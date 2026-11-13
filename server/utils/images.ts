@@ -3,7 +3,7 @@ import { list, type NovaObject } from "./delivery";
 import { IMAGE, TYPE } from "./schema";
 
 /**
- * Picture URLs (`/media/{md5}{extension}`) by file object ID, from objects the API delivered (the `refs` of a read with
+ * Picture URLs (`/media/{md5}/original{extension}`) by file object ID, from objects the API delivered (the `refs` of a read with
  * `resolve`): a content object only holds the file object's ID, and the hash that names the file is on that object.
  * An image without hash or extension has no file and is left out.
  */
@@ -11,7 +11,7 @@ export function toImages(objs: NovaObject[]): Map<number, string> {
   const images = new Map<number, string>();
   for (const { meta, props } of objs) {
     if (!props[IMAGE.md5] || !props[IMAGE.extension]) continue;
-    images.set(meta.id, `/media/${props[IMAGE.md5]}${props[IMAGE.extension]}`);
+    images.set(meta.id, `/media/${props[IMAGE.md5]}/original${props[IMAGE.extension]}`);
   }
   return images;
 }

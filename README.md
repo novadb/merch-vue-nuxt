@@ -56,7 +56,7 @@ the Shopify variables.
 | `server/utils/site.ts` | page tree, URLs from `merchPageUrlSegment` + parent page, breadcrumb, category page of a group |
 | `server/utils/products.ts` | products, full-text filter, facets (counted on the server), sorting |
 | `server/utils/content.ts` | a page's Visual Document, resolved for rendering: links, embedded products and pages, pictures |
-| `server/utils/images.ts`, `media.ts`, `server/routes/media/` | picture URLs by content address; the `/media` proxy with disk cache and scaled WebP variants (`sharp`) |
+| `server/utils/images.ts`, `media.ts`, `server/routes/media/` | picture URLs by content address (`/media/{md5}/original{ext}`, `/media/{md5}/{width}{ext}.webp`); the `/media` proxy with disk cache and scaled WebP variants (`sharp`) |
 | `server/api/` | `site/{region}`, `page`, `search` (the pages' data), `suggest` (the typeahead's JSON) |
 | `server/routes/index.get.ts` | `/` → region by `Accept-Language` |
 | `shared/` | what server and browser both use: the data types, regions and prices, texts, picture URLs, range constants |

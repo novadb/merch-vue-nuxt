@@ -1,7 +1,8 @@
 /**
  * Media proxy with a disk cache. The Delivery token never reaches the browser, so pictures are served from here; but a
  * picture is fetched from NovaDB only once. The upstream route is content-addressed and cannot change under its
- * name (`files/{md5}{extension}`: ETag = MD5), so a cached file is never revalidated.
+ * name (`files/{md5}{extension}`: ETag = MD5), so a cached file is never revalidated. A file's cache key is its URL below
+ * `/media`: `{md5}/original{ext}` and, scaled, `{md5}/{width}{ext}.webp`.
  */
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
@@ -51,9 +52,8 @@ async function download(key: string, upstreamPath: string): Promise<Meta | undef
   const contentType = upstream.headers.get("Content-Type");
   if (!upstream.ok || !upstream.body || !etag || !contentType) throw new Error(`Delivery ${upstream.status} for ${upstreamPath} (ETag ${etag}, Content-Type ${contentType})`);
 
-  const dir = cacheDir();
-  await mkdir(dir, { recursive: true });
-  const file = path.join(dir, key);
+  const file = path.join(cacheDir(), key);
+  await mkdir(path.dirname(file), { recursive: true });
   await writeAtomic(file, (temp) => pipeline(Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]), createWriteStream(temp)));
   return writeMeta(key, { contentType, etag, size: (await stat(file)).size });
 }
@@ -66,7 +66,6 @@ async function writeMeta(key: string, meta: Meta): Promise<Meta> {
 /** An image file's name is its content address: the MD5 (GUID form, or 32 hex digits) and the extension. */
 export const FILE_NAME = /^([0-9a-f]{32}|[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12})\.[a-z0-9]{1,5}$/;
 
-
 /** Cached meta for `key`, building the file first (once, however many requests ask) if it is not there yet. */
 async function ensure(key: string, build: () => Promise<Meta | undefined>): Promise<Meta | undefined> {
   const cached = await readMeta(key);
@@ -76,12 +75,13 @@ async function ensure(key: string, build: () => Promise<Meta | undefined>): Prom
   return pending;
 }
 
-/** Scales the cached original `file-{name}` to `width` as WebP, without enlarging. Meta is written last, as in `download`. */
-async function scale(name: string, width: number, key: string): Promise<Meta | undefined> {
-  const original = await ensure(`file-${name}`, () => download(`file-${name}`, `files/${name}`));
+/** Scales the cached original (`{md5}/original{ext}`, fetched first if missing) to `width` as WebP, without enlarging. Meta is written last, as in `download`. */
+async function scale(md5: string, ext: string, width: number, key: string): Promise<Meta | undefined> {
+  const originalKey = `${md5}/original${ext}`;
+  const original = await ensure(originalKey, () => download(originalKey, `files/${md5}${ext}`));
   if (!original) return undefined;
   const file = path.join(cacheDir(), key);
-  await writeAtomic(file, (temp) => sharp(path.join(cacheDir(), `file-${name}`), { animated: true }).resize({ width, withoutEnlargement: true }).webp({ quality: 80 }).toFile(temp));
+  await writeAtomic(file, (temp) => sharp(path.join(cacheDir(), originalKey), { animated: true }).resize({ width, withoutEnlargement: true }).webp({ quality: 80 }).toFile(temp));
   return writeMeta(key, { contentType: "image/webp", etag: `"${original.etag.replaceAll('"', "")}-w${width}"`, size: (await stat(file)).size });
 }
 
@@ -89,18 +89,16 @@ async function scale(name: string, width: number, key: string): Promise<Meta | u
 const matches = (header: string | null, etag: string) =>
   header !== null && header.split(",").some((tag) => tag.trim() === "*" || tag.trim().replace(/^W\//, "") === etag);
 
-/**
- * Serves one picture from the disk cache, fetching it from `upstreamPath` first if it is not there yet. `key` names the
- * cache file and must be safe as a file name (the routes build it from a validated parameter). 404 if NovaDB has no such file.
- */
-export function serveMedia(key: string, upstreamPath: string, ifNoneMatch: string | null): Promise<Response> {
-  return respond(key, () => download(key, upstreamPath), ifNoneMatch);
+/** Serves `/media/{md5}/original{ext}`, fetching `files/{md5}{ext}` first if it is not cached yet; 404 if NovaDB has no such file. The caller has validated both parts as a file name (`FILE_NAME`), which makes the cache key safe. */
+export function serveOriginal(md5: string, ext: string, ifNoneMatch: string | null): Promise<Response> {
+  const key = `${md5}/original${ext}`;
+  return respond(key, () => download(key, `files/${md5}${ext}`), ifNoneMatch);
 }
 
-/** Serves the file `name` (see `server/routes/media/[name].get.ts`) scaled to one of `MEDIA_WIDTHS` (`shared/utils/pictures.ts`); the caller has validated both. */
-export function serveScaled(name: string, width: number, ifNoneMatch: string | null): Promise<Response> {
-  const key = `w${width}-${name}`;
-  return respond(key, () => scale(name, width, key), ifNoneMatch);
+/** Serves `/media/{md5}/{width}{ext}.webp`, the file scaled to one of `MEDIA_WIDTHS` (`shared/utils/pictures.ts`); the caller has validated all three. */
+export function serveScaled(md5: string, ext: string, width: number, ifNoneMatch: string | null): Promise<Response> {
+  const key = `${md5}/${width}${ext}.webp`;
+  return respond(key, () => scale(md5, ext, width, key), ifNoneMatch);
 }
 
 async function respond(key: string, build: () => Promise<Meta | undefined>, ifNoneMatch: string | null): Promise<Response> {
