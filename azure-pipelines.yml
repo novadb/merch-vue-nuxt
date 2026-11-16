@@ -67,14 +67,14 @@ steps:
     displayName: Install the suite
     workingDirectory: $(Pipeline.Workspace)/s/merch-react-router
 
-  - script: npx playwright install --with-deps firefox
-    displayName: Install Firefox for Playwright
+  - script: npx playwright install --with-deps chromium
+    displayName: Install Chromium for Playwright
     workingDirectory: $(Pipeline.Workspace)/s/merch-react-router
 
   # No retries: a red test is a finding. The paths the tests use are CMS data. The only tests left out are the ones
   # tagged @shopify (Shopify is tested locally until further notice).
   - script: npx playwright test --grep-invert @shopify --reporter=line,junit
-    displayName: Playwright suite (Firefox, without @shopify)
+    displayName: Playwright suite (Chromium, without @shopify)
     workingDirectory: $(Pipeline.Workspace)/s/merch-react-router
     env:
       BASE_URL: http://localhost:$(PORT)
@@ -86,7 +86,7 @@ steps:
     inputs:
       testResultsFormat: JUnit
       testResultsFiles: $(Pipeline.Workspace)/s/merch-react-router/test-results/junit.xml
-      testRunTitle: Playwright (Firefox)
+      testRunTitle: Playwright (Chromium)
       failTaskOnFailedTests: false  # the Playwright step already fails the run
 
   - script: |
