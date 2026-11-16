@@ -36,7 +36,18 @@ function rewriteLinks(html: string, targets: Map<number, Link>): string {
 
 /** The root node (`visualComponentRoot`) comes from the CMS as `<div class="main">`: the `.main` of site.css. */
 export function resolveDocument(root: VNode, lookup: Lookup): ContentRoot {
-  return { element: root.element || "div", class: root.class, children: resolveChildren(root, lookup) };
+  const children = resolveChildren(root, lookup);
+  const hero = firstImage(children);
+  if (hero) hero.eager = true;
+  return { element: root.element || "div", class: root.class, children };
+}
+
+/** The first picture in document order, after the nodes without a file are dropped; a picture used twice is two nodes, only the first is it. */
+function firstImage(nodes: ContentNode[]): Extract<ContentNode, { kind: "image" }> | undefined {
+  for (const node of nodes) {
+    const found = node.kind === "image" ? node : node.kind === "group" ? firstImage(node.children) : undefined;
+    if (found) return found;
+  }
 }
 
 const resolveChildren = (node: VNode, lookup: Lookup): ContentNode[] => (node.children ?? []).flatMap((child) => resolveNode(child, lookup) ?? []);

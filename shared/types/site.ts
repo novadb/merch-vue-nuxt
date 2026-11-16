@@ -65,11 +65,14 @@ export type RangeData = {
   groupNames: Record<number, string>;
 };
 
-/** A Visual Document (page content), resolved on the server: links rewritten, embedded objects and pictures looked up. */
+/**
+ * A Visual Document (page content), resolved on the server: links rewritten, embedded objects and pictures looked up.
+ * `eager` marks the document's first picture, which is on screen at once (the hero): lazy loading would delay the largest contentful paint.
+ */
 export type ContentNode =
   | { kind: "group"; element: string; class?: string; children: ContentNode[] }
   | { kind: "html"; element: string; class?: string; html: string }
-  | { kind: "image"; class?: string; src: string }
+  | { kind: "image"; class?: string; src: string; eager?: true }
   | { kind: "product"; element: string; class?: string; product: Product }
   | { kind: "teaser"; element: string; class?: string; target: Link };
 export type ContentRoot = { element: string; class?: string; children: ContentNode[] };

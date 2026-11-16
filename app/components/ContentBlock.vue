@@ -20,7 +20,7 @@ const childSizes = computed(() => (node.class === "merchChapter" ? CHAPTER_SIZES
   <component :is="node.element" v-if="node.kind === 'group'" :class="node.class">
     <ContentBlock v-for="(child, i) in node.children" :key="i" :node="child" :sizes="childSizes" />
   </component>
-  <img v-else-if="node.kind === 'image'" :class="node.class" :src="node.src" :srcset="srcSet(node.src)" :sizes="sizes" alt="" loading="lazy">
+  <img v-else-if="node.kind === 'image'" :class="node.class" :src="node.src" :srcset="srcSet(node.src)" :sizes="sizes" alt="" :loading="node.eager ? 'eager' : 'lazy'" :fetchpriority="node.eager ? 'high' : undefined">
   <component :is="node.element" v-else-if="node.kind === 'product'" :class="node.class"><ProductCard :product="node.product" /></component>
   <component :is="node.element" v-else-if="node.kind === 'teaser'" :class="node.class"><PageTeaser :target="node.target" /></component>
   <!-- `innerHTML`, not `v-html`: on a dynamic <component> Vue's server renderer drops v-html, the text would only appear after hydration. -->
