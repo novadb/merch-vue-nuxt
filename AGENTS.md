@@ -19,8 +19,8 @@ Non-goals: client-side navigation, writes to NovaDB, a database or shared cache,
 - Run: `npm run dev` (http://localhost:3000; reads `.env`). It needs the Delivery login (`NOVA_DELIVERY_URL`, `NOVA_DELIVERY_USER`, `NOVA_DELIVERY_PASSWORD`) and fails loudly without it.
 - `npm run typecheck`, `npm run build`, `docker build .`
 - Local container (`localhost:4001`, podman): `uv run scripts/refresh-container.py` after every completed change; `--full` after a change to `package.json`, `package-lock.json` or `Dockerfile`.
-- Tests: the shared Playwright suite, from its checkout: `BASE_URL=http://localhost:4001 npx playwright test`. The tests tagged `@shopify` need the Shopify variables.
-- Done means: typecheck, build and `docker build` pass and the suite is green against the real Delivery API, but for the tests the README names under "Deviations". "Should work" is not a result; report each gate with its output.
+- Tests: the shared Playwright suite (outside this repository, one project per demo), from its folder: `BASE_URL=http://localhost:4001 npx playwright test --project vue-nuxt`. The tests tagged `@shopify` need the Shopify variables.
+- Done means: typecheck, build and `docker build` pass and the suite is green against the real Delivery API. "Should work" is not a result; report each gate with its output.
 - The suite asserts structure and data rules, not CMS copy (a missing seed path is CMS data). It runs with JavaScript, so it misses what only the server render lacks: check a changed page's HTML with `curl` too.
 
 ## NovaDB
@@ -28,6 +28,7 @@ Non-goals: client-side navigation, writes to NovaDB, a database or shared cache,
 Before touching `server/utils/` or the content components read `NOVADB.md`: the model and the Delivery API's concepts (identifiers, `lang`, `props`, variants, references, Visual Document, files, search). The wire protocol (routes, filter and sort grammar, paging) is in the product documentation it links. `README.md` lists which file does what.
 
 - Read-only, branch `merchDemo`.
+- Only products and articles in the workflow state "released" (`WORKFLOW_RELEASED`) are on the site, never an unfinished one. A product is the card, URL and page; SKU, colour, stock and delivery time come from its articles.
 - Every NovaDB name (branch, types, attributes, market variants) is an API identifier and stands only in `server/utils/schema.ts`. An unavoidable numeric ID goes there too, as a named constant.
 - A missing `props` key means unset or untranslated: omit it. Never fall back to another language or to `displayName`.
 - NovaDB is read only in `server/`. Never print or log `NOVA_DELIVERY_URL/USER/PASSWORD`, never put them in `runtimeConfig.public`, the payload or `app/`: pictures go through the `/media` proxy.

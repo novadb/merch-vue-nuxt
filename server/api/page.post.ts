@@ -6,7 +6,7 @@ import type { Alternates, Link, PageData, Product } from "#shared/types/site";
 import { CULTURE, isRegion, OTHER_LANGUAGE_REGION, REGIONS, type Region } from "#shared/utils/regions";
 import { imageIds, referencedIds, resolveDocument } from "../utils/content";
 import { imagesByIds } from "../utils/images";
-import { loadProducts, productByPath, productsByIds, rangeOf } from "../utils/products";
+import { loadProducts, productByPath, productsByIds, rangeOf, setContents } from "../utils/products";
 import { PRODUCT } from "../utils/schema";
 import { breadcrumb, categoryPage, loadGroups, loadSite, type Page, type Site } from "../utils/site";
 
@@ -58,20 +58,26 @@ async function pageData(site: Site, page: Page, region: Region, form: URLSearchP
 async function productData(site: Site, region: Region, path: string): Promise<PageData> {
   const product: Product | undefined = path ? await productByPath(region, path) : undefined;
   if (!product) throw createError({ statusCode: 404 });
-  const [similar, [other], groups] = await Promise.all([
+  const [similar, accessories, spareParts, contents, [other], groups] = await Promise.all([
     productsByIds(product.similar, region),
+    productsByIds(product.accessories, region),
+    productsByIds(product.spareParts, region),
+    setContents(product, region),
     productsByIds([product.id], OTHER_LANGUAGE_REGION[region]),
     loadGroups(region),
   ]);
   const category = product.groupId ? categoryPage(site, product.groupId) : undefined;
   return {
     kind: "product",
-    title: product.name,
+    title: product.seo.title ?? product.name,
     canonical: product.url,
     alternates: alternatesOf(region, product.path, other?.path),
     crumbs: [...breadcrumb(site, category), { url: product.url, title: product.name }],
     product,
     groupName: product.groupId ? groups[product.groupId] : undefined,
+    contents,
     similar,
+    accessories,
+    spareParts,
   };
 }

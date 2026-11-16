@@ -1,6 +1,7 @@
 <!-- The product card. Class names and HTML are the same in every demo of this site (shared stylesheet and test suite): change them only together. -->
 <script setup lang="ts">
 import type { Product } from "#shared/types/site";
+import { colorsOf, inStockOf } from "#shared/utils/articles";
 import { srcSet } from "#shared/utils/pictures";
 import { formatPrice } from "#shared/utils/regions";
 
@@ -8,7 +9,7 @@ const { product: p } = defineProps<{ product: Product }>();
 const region = useRegion();
 const text = useTexts();
 const details = computed(() => [
-  p.color && text.value.value(p.color), p.volume && `${p.volume} ml`, p.screenSize && `${p.screenSize}″`,
+  ...colorsOf(p).map(text.value.value), p.volume && `${p.volume} ml`, p.screenSize && `${p.screenSize}″`,
   ...p.materials.map(text.value.value), ...p.finishes.map(text.value.value),
   p.pieces && p.pieces > 1 && text.value.pieceCount(p.pieces),
 ].filter(Boolean).join(" · "));
@@ -22,7 +23,7 @@ const details = computed(() => [
       </div>
       <h3 class="product-card__name">{{ p.name }}</h3>
       <p class="product-card__meta">{{ details }}</p>
-      <p class="product-card__price">{{ formatPrice(p.price, region) }}<span v-if="p.inStock === false" class="badge badge--muted">{{ text.soldOut }}</span></p>
+      <p class="product-card__price">{{ formatPrice(p.price, region) }}<span v-if="inStockOf(p) === false" class="badge badge--muted">{{ text.soldOut }}</span></p>
     </a>
   </article>
 </template>

@@ -2,13 +2,13 @@
 import type { Labels } from "#shared/utils/texts";
 import { CULTURE, type Region } from "#shared/utils/regions";
 import { list } from "./delivery";
-import { COLOR_HEX, LABEL, NAME, PRODUCT, TYPE } from "./schema";
+import { ARTICLE, COLOR_HEX, LABEL, NAME, PRODUCT, TYPE } from "./schema";
 
 /** UI text key → the product attribute whose name it is: the name an editor sees in the CMS is the name on the site. */
 const ATTRIBUTE_TEXT = {
-  group: PRODUCT.group, sku: PRODUCT.sku, colour: PRODUCT.color, material: PRODUCT.materials, price: PRODUCT.price,
-  availability: PRODUCT.inStock, volume: PRODUCT.cupVolume, finish: PRODUCT.finish, pieces: PRODUCT.pieces,
-  screenSize: PRODUCT.screenSize,
+  group: PRODUCT.group, sku: ARTICLE.number, colour: ARTICLE.color, material: PRODUCT.materials, price: PRODUCT.price,
+  availability: ARTICLE.stock, volume: PRODUCT.volume, finish: PRODUCT.finishes, pieces: PRODUCT.pieces,
+  screenSize: PRODUCT.screenSize, delivery: ARTICLE.deliveryDays,
 } as const;
 
 /**

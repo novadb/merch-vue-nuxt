@@ -20,13 +20,13 @@ if (failed || !page.value) throw createError({ statusCode: failed?.statusCode ??
 
 const text = useTexts();
 useHead({ title: () => `${page.value!.title} · ${text.value.siteName}` });
-useSeoLinks(page.value.canonical, page.value.alternates);
+useSeoLinks(page.value.canonical, page.value.alternates, page.value.kind === "product" ? page.value.product.seo : {});
 </script>
 
 <template>
   <SiteShell v-if="page" :alternates="page.alternates">
     <Breadcrumbs :items="page.crumbs" />
-    <ProductDetail v-if="page.kind === 'product'" :product="page.product" :group-name="page.groupName" :similar="page.similar" />
+    <ProductDetail v-if="page.kind === 'product'" :product="page.product" :group-name="page.groupName" :contents="page.contents" :similar="page.similar" :accessories="page.accessories" :spare-parts="page.spareParts" />
     <VisualDocument v-else :root="page.content">
       <ProductRange v-if="page.range" :range="page.range" payload-key="page" />
     </VisualDocument>

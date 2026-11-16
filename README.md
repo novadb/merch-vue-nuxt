@@ -40,9 +40,9 @@ with the variables from the environment or `.env`.
 
 ## Test
 
-The site passes the shared Playwright behaviour suite of the Nova Merchandising demos: run it from its
-checkout with `BASE_URL=http://localhost:4001 npx playwright test`. The tests tagged `@shopify` (buy button, cart) need
-the Shopify variables.
+The site passes the shared Playwright behaviour suite of the Nova Merchandising demos (not part of this repository, one
+project per demo): run it from its folder with `BASE_URL=http://localhost:4001 npx playwright test --project vue-nuxt`.
+The tests tagged `@shopify` (buy button, cart) need the Shopify variables.
 
 ## How a request is answered
 
@@ -63,12 +63,12 @@ the Shopify variables.
 | `server/utils/delivery.ts` | Delivery API client: Basic auth from the environment, 60 s cache |
 | `server/utils/labels.ts`, `shared/utils/texts.ts` | the UI texts, read from NovaDB's labels; turned into texts (plural forms, placeholders) |
 | `server/utils/site.ts` | page tree, URLs from `merchPageUrlSegment` + parent page, breadcrumb, category page of a group |
-| `server/utils/products.ts` | products, full-text filter, facets (counted on the server), sorting |
+| `server/utils/products.ts` | released products with their articles, claims and set rows; full-text filter, facets (counted on the server), sorting |
 | `server/utils/content.ts` | a page's Visual Document, resolved for rendering: links, embedded products and pages, pictures |
 | `server/utils/images.ts`, `media.ts`, `server/routes/media/` | picture URLs by content address (`/media/{md5}/original{ext}`, `/media/{md5}/{width}{ext}.webp`); the `/media` proxy with disk cache and scaled WebP variants (`sharp`) |
 | `server/api/` | `site/{region}`, `page`, `search` (the pages' data), `suggest` (the typeahead's JSON) |
 | `server/routes/index.get.ts` | `/` → region by `Accept-Language` |
-| `shared/` | what server and browser both use: the data types, regions and prices, texts, picture URLs, range constants |
+| `shared/` | what server and browser both use: the data types, what a product's articles say (colour, stock), regions and prices, texts, picture URLs, range constants |
 | `app/pages/[region]/[...path].vue`, `search.vue`, `app/error.vue` | `/{region}/…` (a page or a product), the search page, 404 and error page |
 | `app/components/SiteShell.vue` | document, header, region switch, footer; every page wraps itself in it |
 | `app/components/VisualDocument.vue`, `ContentBlock.vue` | the Visual Document renderer |

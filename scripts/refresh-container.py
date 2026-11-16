@@ -15,7 +15,7 @@ falls back to --full by itself when the container does not exist or is not runni
 The container runs the same image the Dockerfile builds. The Delivery login (NOVA_DELIVERY_URL, NOVA_DELIVERY_USER,
 NOVA_DELIVERY_PASSWORD) and the public Shopify Buy Button settings (SHOPIFY_DOMAIN, SHOPIFY_STOREFRONT_TOKEN) come from
 the environment or from `.env` (see `.env.example`), the environment winning; --full stops if one is missing and never
-prints a value. Engine: podman, else docker.
+prints a value. DEMO_BRANCH (the NovaDB branch to read) is passed on if set. Engine: podman, else docker.
 """
 import os
 import shutil
@@ -46,6 +46,7 @@ ENGINE = shutil.which("podman") or shutil.which("docker") or sys.exit("neither p
 
 
 LOGIN_VARS = ("NOVA_DELIVERY_URL", "NOVA_DELIVERY_USER", "NOVA_DELIVERY_PASSWORD", "SHOPIFY_DOMAIN", "SHOPIFY_STOREFRONT_TOKEN")
+OPTIONAL_VARS = ("DEMO_BRANCH",)
 
 
 def login_env() -> dict[str, str]:
@@ -56,12 +57,12 @@ def login_env() -> dict[str, str]:
     if dotenv.exists():
         for line in dotenv.read_text(encoding="utf-8").splitlines():
             key, sep, value = line.partition("=")
-            if sep and key.strip() in LOGIN_VARS:
+            if sep and key.strip() in LOGIN_VARS + OPTIONAL_VARS:
                 value = value.strip()
                 if len(value) > 1 and value[0] == value[-1] and value[0] in "\"'":
                     value = value[1:-1]
                 values[key.strip()] = value.replace("\\$", "$")  # an escaped dollar (`\$`) is a literal one, as the framework's .env files write it
-    values.update({name: os.environ[name] for name in LOGIN_VARS if os.environ.get(name)})
+    values.update({name: os.environ[name] for name in LOGIN_VARS + OPTIONAL_VARS if os.environ.get(name)})
     missing = [name for name in LOGIN_VARS if not values.get(name)]
     if missing:
         sys.exit(f"{', '.join(missing)} not set (environment or {dotenv})")
@@ -112,7 +113,7 @@ def full() -> None:
     run(ENGINE, "rm", "-f", NAME, check=False)
     # `-e NAME` takes the value from run()'s environment: it never stands on a command line or in the output
     run(ENGINE, "run", "-d", "--name", NAME, "-p", f"{PORT}:{CONTAINER_PORT}",
-        *(arg for name in LOGIN_VARS for arg in ("-e", name)), IMAGE, env=login)
+        *(arg for name in login for arg in ("-e", name)), IMAGE, env=login)
 
 
 def fast() -> None:

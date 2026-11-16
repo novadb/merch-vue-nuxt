@@ -1,46 +1,90 @@
 /** Products from the PIM: loading, search, facets and sorting. */
 import { CULTURE, MARKET, type Region } from "#shared/utils/regions";
 import { RANGE_BATCH, SORTS } from "#shared/utils/range";
-import type { Facets, FacetValue, Product, RangeData, Selection, Sort } from "#shared/types/site";
+import { colorsOf, inStockOf } from "#shared/utils/articles";
+import type { Article, Facets, FacetValue, Product, RangeData, Selection, SetRow, Sort } from "#shared/types/site";
 import { list, type NovaObject } from "./delivery";
 import { toImages } from "./images";
-import { MARKET_VARIANT, PRODUCT, TYPE } from "./schema";
+import { ARTICLE, CLAIM, MARKET_VARIANT, PRODUCT, SET_ITEM, TYPE, WORKFLOW_RELEASED } from "./schema";
 
 /** Removes the XHTML namespace the CMS stores with rich text. */
 export const cleanHtml = (html: string) => html.replace(/\sxmlns="[^"]*"/g, "");
 
-function toProduct(o: NovaObject, region: Region, images: Map<number, string>): Product {
+/** Only what the workflow has released is on the site: `filter` narrows the released objects further. */
+const releasedWith = (workflow: string, filter?: string) => [`${workflow} = ${WORKFLOW_RELEASED}`, filter].filter(Boolean).join(" && ");
+
+const toArticle = (o: NovaObject): Article => ({
+  id: o.meta.id,
+  productId: o.props[ARTICLE.product],
+  name: o.props[ARTICLE.name],
+  sku: o.props[ARTICLE.number],
+  color: o.props[ARTICLE.color] ? String(o.props[ARTICLE.color]) : undefined,
+  stock: o.props[ARTICLE.stock] ?? 0,
+  deliveryDays: o.props[ARTICLE.deliveryDays],
+});
+
+/** All released articles. */
+async function loadArticles(region: Region): Promise<Article[]> {
+  const { objs } = await list(TYPE.article, { lang: CULTURE[region], filter: releasedWith(ARTICLE.workflow) });
+  return objs.map(toArticle);
+}
+
+/** `refs`: the objects the product read resolved (pictures, claims, set rows), by object ID. */
+function toProduct(o: NovaObject, region: Region, articles: Article[], refs: Map<number, NovaObject>, images: Map<number, string>): Product {
   const p = o.props;
   return {
     id: o.meta.id,
     name: p[PRODUCT.name],
     path: p[PRODUCT.urlSegment],
     url: `/${region}/${p[PRODUCT.urlSegment]}`,
-    sku: p[PRODUCT.sku],
-    color: p[PRODUCT.color] ? String(p[PRODUCT.color]) : undefined,
+    articles,
     materials: (p[PRODUCT.materials] ?? []).map(String),
-    volume: p[PRODUCT.cupVolume],
-    finishes: (p[PRODUCT.finish] ?? []).map(String),
+    volume: p[PRODUCT.volume],
+    finishes: (p[PRODUCT.finishes] ?? []).map(String),
     pieces: p[PRODUCT.pieces],
     screenSize: p[PRODUCT.screenSize],
     price: p[PRODUCT.price],
-    inStock: p[PRODUCT.inStock],
     image: images.get(p[PRODUCT.images]?.[0]),
     groupId: p[PRODUCT.group],
     descriptionHtml: p[PRODUCT.description]?.XML ? cleanHtml(p[PRODUCT.description].XML) : undefined,
-    similar: p[PRODUCT.similar] ?? [],
+    similar: p[PRODUCT.related] ?? [],
+    accessories: p[PRODUCT.accessories] ?? [],
+    spareParts: p[PRODUCT.spareParts] ?? [],
+    claims: (p[PRODUCT.claims] ?? []).map((id: number) => refs.get(id)?.props[CLAIM.text]).filter(Boolean),
+    setItems: (p[PRODUCT.setItems] ?? []).flatMap((id: number) => {
+      const row = refs.get(id)?.props;
+      return row ? [{ articleId: row[SET_ITEM.article], quantity: row[SET_ITEM.quantity] }] : [];
+    }),
+    seo: {
+      title: p[PRODUCT.seoTitle],
+      description: p[PRODUCT.seoDescription],
+      noIndex: p[PRODUCT.seoNoIndex] === true,
+      noFollow: p[PRODUCT.seoNoFollow] === true,
+    },
     shopifyId: p[PRODUCT.shopifyId],
   };
 }
 
 /**
- * Every product matching a Delivery filter, or the first `take` of them (one request), priced in the region's market; the
- * pictures arrive in the same response (`resolve`). Products without a name or URL segment are dropped after the read.
+ * Every released product matching a Delivery filter, or the first `take` of them (one request), priced in the region's
+ * market; pictures, claims and set rows arrive in the same response (`resolve`), the released articles in a read of their
+ * own, grouped by product. Products without a name or URL segment are dropped after the read.
  */
 export async function loadProducts(region: Region, filter?: string, sort?: string, take?: number): Promise<Product[]> {
-  const { objs, refs } = await list(TYPE.product, { lang: CULTURE[region], variants: MARKET_VARIANT[MARKET[region]], filter, sort, take, resolve: PRODUCT.images });
+  const [{ objs, refs }, articles] = await Promise.all([
+    list(TYPE.product, {
+      lang: CULTURE[region], variants: MARKET_VARIANT[MARKET[region]], filter: releasedWith(PRODUCT.workflow, filter), sort, take,
+      resolve: [PRODUCT.images, PRODUCT.claims, PRODUCT.setItems].join(","),
+    }),
+    loadArticles(region),
+  ]);
   const images = toImages(refs);
-  return objs.filter((o) => o.props[PRODUCT.name] && o.props[PRODUCT.urlSegment]).map((o) => toProduct(o, region, images));
+  const refsById = new Map(refs.map((o) => [o.meta.id, o]));
+  const articlesOf = new Map<number, Article[]>();
+  for (const a of articles) articlesOf.set(a.productId, [...(articlesOf.get(a.productId) ?? []), a]);
+  return objs
+    .filter((o) => o.props[PRODUCT.name] && o.props[PRODUCT.urlSegment])
+    .map((o) => toProduct(o, region, articlesOf.get(o.meta.id) ?? [], refsById, images));
 }
 
 /** Products by ID, in the order of `ids` (the order an editor chose). */
@@ -53,6 +97,15 @@ export async function productsByIds(ids: number[], region: Region): Promise<Prod
 export async function productByPath(region: Region, path: string): Promise<Product | undefined> {
   const [product] = await loadProducts(region, `${PRODUCT.urlSegment} = "${path.replace(/["\\]/g, "")}"`);
   return product;
+}
+
+/** The rows of a set product: how many of which article, linked to the article's product page (none if that is not on the site). */
+export async function setContents(product: Product, region: Region): Promise<SetRow[]> {
+  if (!product.setItems.length) return [];
+  const all = new Map((await loadArticles(region)).map((a) => [a.id, a]));
+  const rows = product.setItems.flatMap(({ articleId, quantity }) => (all.has(articleId) ? [{ quantity, article: all.get(articleId)! }] : []));
+  const products = await productsByIds([...new Set(rows.map((r) => r.article.productId))], region);
+  return rows.map(({ quantity, article }) => ({ quantity, name: article.name, url: products.find((p) => p.id === article.productId)?.url }));
 }
 
 /** Lucene-safe prefix terms (`+term*`) from the first 100 characters a visitor typed; empty when nothing usable is left. */
@@ -102,7 +155,7 @@ export function parseSelection(posted: URLSearchParams): Selection {
 type ListFacet = "group" | "color" | "material";
 type Facet = ListFacet | "stock" | "price";
 const facetValues = (p: Product, facet: ListFacet): string[] =>
-  ({ group: p.groupId ? [String(p.groupId)] : [], color: p.color ? [p.color] : [], material: p.materials })[facet];
+  ({ group: p.groupId ? [String(p.groupId)] : [], color: colorsOf(p), material: p.materials })[facet];
 
 /** Whether a product passes every selected facet except `skip` (so a facet's own counts stay open). */
 function passes(p: Product, s: Selection, skip?: Facet): boolean {
@@ -110,7 +163,7 @@ function passes(p: Product, s: Selection, skip?: Facet): boolean {
     skip === facet || !selected.length || facetValues(p, facet).some((v) => selected.includes(v));
   return (
     any("group", s.group.map(String)) && any("color", s.color) && any("material", s.material) &&
-    (skip === "stock" || !s.stock || p.inStock === true) &&
+    (skip === "stock" || !s.stock || inStockOf(p) === true) &&
     (skip === "price" || ((s.min === undefined || (p.price ?? 0) >= s.min) && (s.max === undefined || (p.price ?? Infinity) <= s.max)))
   );
 }
@@ -145,7 +198,7 @@ export function rangeOf(products: Product[], posted: URLSearchParams, defaultSor
     group: count(products, s, "group", s.group.map(String)),
     color: count(products, s, "color", s.color),
     material: count(products, s, "material", s.material),
-    inStock: products.filter((p) => p.inStock && passes(p, s, "stock")).length,
+    inStock: products.filter((p) => inStockOf(p) && passes(p, s, "stock")).length,
     priceMin: prices.length ? Math.floor(Math.min(...prices)) : 0,
     priceMax: prices.length ? Math.ceil(Math.max(...prices)) : 0,
   };

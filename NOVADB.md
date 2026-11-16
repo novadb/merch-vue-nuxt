@@ -12,15 +12,22 @@ One branch, `merchDemo`, holds CMS and PIM. The site only reads it. Content lang
 | Type | What it is on the site | Read from it |
 |---|---|---|
 | `merchPage` | a page of the site | title, navigation title, URL segment, sort key, image, content, product groups, parent page |
-| `merchProduct` | a product | name, description, SKU, group, price, in stock, images, similar products, URL path, Shopify ID, colour, materials, finishes, volume, pieces, screen size |
-| `merchProductGroup` | a group of products | name |
+| `merchProduct` | a product: what the site shows (page, card, price, Shopify ID) | name, description, product number, group, price, images, similar products, accessories, spare parts, URL path, Shopify ID, claims, set rows, materials, finishes, volume, pieces, screen size, SEO title, description and robots flags |
+| `merchArticle` | the sellable variant of a product (most have one) | SKU, name, product, colour, stock, delivery time in days |
+| `merchProductGroup` | a group of products, in a tree below a portfolio | name, parent group |
+| `merchClaim` | a statement a product may make | text |
+| `merchSetItem` | one row of a set product, an anonymous type | article, quantity |
 | `image` | a picture; a file type, so the object is the file | MD5, file extension |
 | `merchLabel` | one UI text | key (language-neutral), text (per language) |
 | `merchColor`, `merchMaterial`, `merchFinish` | PIM values a product references | name; a colour also its hex value |
 | `typeAttribute` | NovaDB's own type of attribute definitions | name: a product attribute is printed under the name an editor sees in the CMS |
 
-A page with product groups is a category page: it lists those groups' products as a live range. Any page can embed
-products as cards in its content. The home page is the page without a parent.
+A page with product groups is a category page: it lists those groups' products as a live range. A product's group is
+the leaf of the group tree; the pages name leaf groups. Any page can embed products as cards in its content. The home
+page is the page without a parent.
+
+A product and an article have a workflow state (new, in process, to validate, released). Only released ones are on the
+site; see "Workflow" below.
 
 ## Concepts
 
@@ -37,15 +44,23 @@ products as cards in its content. The home page is the page without a parent.
   missing and never prints `displayName` or another language in its place.
 - **`props`.** `props=0` returns the attributes a type releases to the API: the contract, and the default.
   `props=1` returns every named attribute; NovaDB's own types (`typeAttribute`) need it.
+- **Workflow.** Editors bring a product and its articles through a workflow; the site shows only what is released.
+  The state is a reference attribute on the type, which the type must release to the API, and a reference is filtered
+  by the target's numeric ID: the state objects have no API identifier, so the ID of "released" is the one numeric ID
+  the site names (it is the same in every branch of an installation). The filter `workflow = <id>` is joined with the
+  read's own filter by `&&`. A product without a released article is still on the site, as available, but no stock or
+  colour filter counts it.
 - **Variants.** A product's price depends on the variant axis `merchMarket`. Without `variants=<member>` the price is
   missing, and a filter or sort on it is a 400. One member per request: `merchMarketEU`, `merchMarketUK` or
   `merchMarketUS`, chosen by the region of the URL (`de`, `uk`, `us`).
 - **References.** A reference is the target's numeric ID (a list of IDs for a multi-value attribute). The targets
   are separate objects, read in one of three ways. `resolve=<reference attribute>` delivers them in `refs` of the same
-  response, with the attributes their type releases: the site reads a product's pictures this way. Where the IDs are
-  known beforehand (a page's image, the pictures a document embeds, the products it embeds), a filter
-  `meta.id = a, b, c` reads exactly those. Colour, material, finish and group are small types, read whole and looked
-  up by `meta.id`.
+  response, with the attributes their type releases: the site reads a product's pictures, claims and set rows this way
+  (the `refs` mix types: each target is found by its ID). An article points to its product, so the articles are read
+  once (a request of their own) and grouped by product. Where the IDs are
+  known beforehand (a page's image, the pictures a document embeds, the products it embeds, a product's similar
+  products, accessories and spare parts), a filter `meta.id = a, b, c` reads exactly those. Colour, material, finish and
+  group are small types, read whole and looked up by `meta.id`.
   Which way fits depends on how the targets are shared: `resolve` when each target belongs to one or a few objects and
   every read needs it (a product's picture: none arrives twice), an ID filter when the IDs are known before the read, a
   small type read whole when many objects share few targets. Only a large target that many objects share, or a read near
@@ -71,8 +86,8 @@ products as cards in its content. The home page is the page without a parent.
   kept for good. The `image` type must release MD5 and extension to the API for this. The API has no resize parameter,
   and the thumbnail (`binaries/{id}`) is one rendition in a format and size the server chooses, so it is not used:
   other sizes are scaled by the site.
-- **Search.** Full-text search is the filter operator `:` on text attributes, the value is Lucene syntax, the order
-  `sort=$score`. A visitor's input passed through verbatim is a 400 or 500: the site strips Lucene syntax and builds
+- **Search.** Full-text search is the filter operator `:` on text attributes (the site searches a product's name,
+  product number and description), the value is Lucene syntax, the order `sort=$score`. A visitor's input passed through verbatim is a 400 or 500: the site strips Lucene syntax and builds
   prefix terms (`+term*`). A language-dependent attribute is searched in the request's `lang`.
 - **Paging.** `take` is at most 1000; `count` in a response is the size of that page, `more` tells whether another
   follows. The site reads a type page by page (`skip` raised by `take` while `more` is true) and joins the pages; the

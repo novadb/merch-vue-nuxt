@@ -19,15 +19,31 @@ export type SiteData = {
   shopify: { domain: string; token: string };
 };
 
+/** The sellable variant of a product: SKU, colour, stock and delivery time. */
+export type Article = {
+  id: number;
+  productId: number;
+  name: string;
+  sku: string;
+  /** A PIM object (`merchColor`) held by ID as a string: the value of its facet checkbox; name and swatch come with the labels. */
+  color?: string;
+  /** Pieces in stock; 0 is sold out. */
+  stock: number;
+  deliveryDays?: number;
+};
+
+/** What a product's SEO attributes ask of search engines. */
+export type Seo = { title?: string; description?: string; noIndex: boolean; noFollow: boolean };
+
 export type Product = {
   id: number;
   name: string;
   url: string;
   /** The URL without the region, e.g. `shop/t-shirts/we-build-value`. */
   path: string;
-  sku?: string;
-  /** Colour, materials and finishes are PIM objects, held by ID as a string: the value of their facet checkbox; names and swatches come with the labels. */
-  color?: string;
+  /** The released articles; a product that has none is shown as available, but no filter counts it. */
+  articles: Article[];
+  /** Materials and finishes are PIM objects, held by ID as a string like an article's colour. */
   materials: string[];
   /** Cup volume in ml. */
   volume?: number;
@@ -37,13 +53,19 @@ export type Product = {
   screenSize?: number;
   /** Amount in the region's currency; undefined: no price in its market. */
   price?: number;
-  /** `false` is sold out; not set: shown as available, but not counted by the in-stock filter. */
-  inStock?: boolean;
   /** `/media/{md5}/original{ext}` of the first picture. */
   image?: string;
   groupId?: number;
   descriptionHtml?: string;
+  /** Object IDs of products: similar ones, accessories and spare parts, as an editor ordered them. */
   similar: number[];
+  accessories: number[];
+  spareParts: number[];
+  /** The texts of the claims the product makes. */
+  claims: string[];
+  /** The rows of a set product: an article (by object ID) and how many of it. */
+  setItems: { articleId: number; quantity: number }[];
+  seo: Seo;
   shopifyId?: string;
 };
 
@@ -77,11 +99,23 @@ export type ContentNode =
   | { kind: "teaser"; element: string; class?: string; target: Link };
 export type ContentRoot = { element: string; class?: string; children: ContentNode[] };
 
+/** One row of a set product: how many of an article, linked to its product's page if that is on the site. */
+export type SetRow = { quantity: number; name: string; url?: string };
+
 type Common = { title: string; canonical: string; alternates: Alternates; crumbs: Link[] };
 /** `/{region}/{path}`: a CMS page (content, maybe a live range) or a product. */
 export type PageData =
   | (Common & { kind: "page"; content?: ContentRoot; range: RangeData | null })
-  | (Common & { kind: "product"; product: Product; groupName?: string; similar: Product[] });
+  | (Common & {
+    kind: "product";
+    product: Product;
+    groupName?: string;
+    /** The rows of a set product, see `setContents`. */
+    contents: SetRow[];
+    similar: Product[];
+    accessories: Product[];
+    spareParts: Product[];
+  });
 
 /** `/{region}/search`: the query, matching pages and the products as a live range. */
 export type SearchData = { q: string; pages: Link[]; range: RangeData };

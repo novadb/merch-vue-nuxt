@@ -1,5 +1,5 @@
 /** Canonical URL and language/region variants (`rel="canonical"`, `rel="alternate" hreflang`) for search engines. */
-import type { Alternates } from "#shared/types/site";
+import type { Alternates, Seo } from "#shared/types/site";
 import { HTML_LANG, REGIONS } from "#shared/utils/regions";
 
 /**
@@ -21,10 +21,18 @@ function useOrigin() {
 /**
  * `path` is the page's clean URL (no filters, sorting, tracking parameters). `variants` holds the same content in every
  * region that has it, the page itself included: every variant lists all of them, `x-default` is `/`, which picks a region.
+ * A page that asks not to be indexed lists no variants: it is not part of the language set.
  */
-export function useSeoLinks(path: string, variants: Alternates) {
+export function useSeoLinks(path: string, variants: Alternates, hints: Partial<Seo> = {}) {
   const origin = useOrigin().value;
-  const alternates = REGIONS.flatMap((region) => (variants[region] ? [{ hreflang: HTML_LANG[region], href: origin + variants[region] }] : []));
+  const alternates = hints.noIndex ? [] : REGIONS.flatMap((region) => (variants[region] ? [{ hreflang: HTML_LANG[region], href: origin + variants[region] }] : []));
   if (alternates.length) alternates.push({ hreflang: "x-default", href: `${origin}/` });
-  useHead({ link: [{ rel: "canonical", href: origin + path }, ...alternates.map((a) => ({ rel: "alternate" as const, ...a }))] });
+  const robots = [hints.noIndex && "noindex", hints.noFollow && "nofollow"].filter(Boolean).join(", ");
+  useHead({
+    link: [{ rel: "canonical", href: origin + path }, ...alternates.map((a) => ({ rel: "alternate" as const, ...a }))],
+    meta: [
+      ...(hints.description ? [{ name: "description", content: hints.description }] : []),
+      ...(robots ? [{ name: "robots", content: robots }] : []),
+    ],
+  });
 }

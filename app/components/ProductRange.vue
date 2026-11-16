@@ -92,14 +92,15 @@ async function more(form: HTMLFormElement, button: HTMLButtonElement) {
     console.warn(error);
   }
   const shown = props.range.items.length;
-  if (!next || next.range.items.length <= shown) {
+  // Filter values that are typed but not applied yet travel with the button: the answer may be a narrower range, and is shown as it is.
+  if (!next || next.range.items.length === shown) {
     native = true;
     return form.requestSubmit(button);
   }
   const keyboard = document.activeElement === button;
   pageData.value = next;
   await nextTick();
-  if (keyboard) grid.value?.focus(shown); // a keyboard user goes on with the first new card
+  if (keyboard && next.range.items.length > shown) grid.value?.focus(shown); // a keyboard user goes on with the first new card
   loading.value = false;
   watchMore();
 }

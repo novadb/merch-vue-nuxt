@@ -5,7 +5,7 @@
  * `attributeName`, the file attributes) do not.
  *
  * The Delivery API serves an identifier with a lower-case first letter, which is why the keys below start in lower case.
- * A numeric ID belongs here too (as a named constant with a comment) if one is ever unavoidable; today there is none.
+ * A numeric ID belongs here too, as a named constant with a comment, where one is unavoidable (`WORKFLOW_RELEASED`).
  */
 
 /** API identifier of the branch (default of `DEMO_BRANCH`; a numeric branch ID works as well). */
@@ -15,12 +15,17 @@ export const BRANCH = "merchDemo";
 export const TYPE = {
   page: "merchPage",
   product: "merchProduct",
+  /** A product's sellable variant (SKU, colour, stock, delivery time). */
+  article: "merchArticle",
   group: "merchProductGroup",
   image: "image",
   label: "merchLabel",
   color: "merchColor",
   material: "merchMaterial",
   finish: "merchFinish",
+  claim: "merchClaim",
+  /** The rows of a set product, an anonymous type: only reachable through `PRODUCT.setItems`. */
+  setItem: "merchSetItem",
   /** NovaDB's own type of attribute definitions: the site prints a product attribute under its name from here. */
   attribute: "typeAttribute",
 } as const;
@@ -43,26 +48,67 @@ export const PAGE = {
   parent: "merchPageParent",
 } as const;
 
-/** Attributes of a product. */
+/**
+ * Attributes of a product. Only what the type releases to the Delivery API arrives in `props`: an unreleased attribute reads as unset, without an error.
+ * A product is what the site shows (page, card, price, Shopify ID); its articles carry SKU, colour and stock.
+ */
 export const PRODUCT = {
   name: "merchProductName",
   description: "merchProductDescription",
-  sku: "merchProductSku",
-  group: "merchProductGroupRef",
-  price: "merchProductPrice",
-  inStock: "merchProductInStock",
+  number: "merchProductNumber",
+  /** Reference to the product group (the parent in the group tree). */
+  group: "merchProductParent",
+  /** One price per market (`MARKET_VARIANT`). */
+  price: "merchProductSalesPrice",
   images: "merchProductImages",
-  similar: "merchProductSimilar",
+  related: "merchProductRelated",
+  accessories: "merchProductAccessories",
+  spareParts: "merchProductSpareParts",
+  /** Unlike a page's, the whole path without the region (`shop/t-shirts/we-build-value`), not one segment. */
   urlSegment: "merchProductUrlSegment",
   shopifyId: "merchProductShopifyId",
-  /** References to `merchColor`, `merchMaterial`, `merchFinish` objects. */
-  color: "merchProductColorRef",
-  materials: "merchProductMaterialRefs",
-  cupVolume: "merchProductCupVolume",
-  finish: "merchProductFinishRefs",
-  pieces: "merchProductPieces",
-  screenSize: "merchProductScreenSize",
+  /** References to `merchClaim` objects: statements the product may make. */
+  claims: "merchClaimRefs",
+  /** References to `merchSetItem` objects, set only on a set product. */
+  setItems: "merchProductSetItems",
+  /** References to `merchMaterial`, `merchFinish` objects. */
+  materials: "merchMaterials",
+  finishes: "merchFinishes",
+  /** Volume in cm³ (a cup's, printed as ml), pieces per set, screen size in inches. */
+  volume: "merchVolume",
+  pieces: "merchPiecesPerSet",
+  screenSize: "merchScreenSize",
+  seoTitle: "merchSeoTitle",
+  seoDescription: "merchSeoDescription",
+  seoNoIndex: "merchSeoNoIndex",
+  seoNoFollow: "merchSeoNoFollow",
+  /** Reference to a workflow state (see `WORKFLOW_RELEASED`). */
+  workflow: "merchProductWorkflow",
 } as const;
+
+/** Attributes of an article, the sellable variant of a product. */
+export const ARTICLE = {
+  /** The SKU. */
+  number: "merchArticleNumber",
+  name: "merchArticleName",
+  product: "merchArticleParent",
+  /** Reference to a `merchColor` object. */
+  color: "merchArticleColor",
+  /** Pieces in stock; 0 is sold out. */
+  stock: "merchArticleStock",
+  deliveryDays: "merchArticleDeliveryDays",
+  workflow: "merchArticleWorkflow",
+} as const;
+
+export const CLAIM = { text: "merchClaimText" } as const;
+export const SET_ITEM = { article: "merchSetItemRef", quantity: "merchSetItemQty" } as const;
+
+/**
+ * The workflow state "released": only products and articles in it are on the site, the rest is still being edited or
+ * checked. A reference attribute is filtered by the target's object ID, and the state objects have no API identifier.
+ * The ID is the same in every branch of this installation.
+ */
+export const WORKFLOW_RELEASED = 2108321;
 
 /**
  * Attributes of an image (a file type: the object IS the file). MD5 and extension give the content address
@@ -90,5 +136,5 @@ export const MARKET_VARIANT = {
 } as const;
 
 /** Fields the full-text search looks in. */
-export const PRODUCT_SEARCH_FIELDS = [PRODUCT.name, PRODUCT.sku, PRODUCT.description];
+export const PRODUCT_SEARCH_FIELDS = [PRODUCT.name, PRODUCT.number, PRODUCT.description];
 export const PAGE_SEARCH_FIELDS = [PAGE.title, PAGE.content];

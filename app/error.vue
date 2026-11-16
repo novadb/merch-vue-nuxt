@@ -8,7 +8,7 @@ const { data: site } = await useSite();
 // Without site data (NovaDB unreachable) there are no labels: the page stands alone in English.
 const text = computed(() => site.value && t(site.value.labels, site.value.region));
 const notFound = computed(() => error.statusCode === 404 && text.value);
-useHead({ title: () => text.value?.siteName ?? "Error" });
+useHead({ title: () => (notFound.value ? `${text.value!.notFound} · ${text.value!.siteName}` : text.value?.siteName ?? "Error") });
 </script>
 
 <template>

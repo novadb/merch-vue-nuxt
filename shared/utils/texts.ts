@@ -11,7 +11,7 @@ export type PimValue = { name?: string; hex?: string };
 export type Labels = { texts: Record<string, string>; values: Record<string, PimValue> };
 
 /** UI text keys that are the names of product attributes: the name of the attribute's definition in NovaDB (`server/utils/labels.ts`). */
-const ATTRIBUTE = ["group", "sku", "colour", "material", "price", "availability", "volume", "finish", "pieces", "screenSize"] as const;
+const ATTRIBUTE = ["group", "sku", "colour", "material", "price", "availability", "volume", "finish", "pieces", "screenSize", "delivery"] as const;
 
 /** Plain texts: printed escaped. */
 const PLAIN = [
@@ -19,6 +19,7 @@ const PLAIN = [
   "search", "searchPlaceholder", "pagesFound", "products", "searchAll",
   "filter", "apply", "reset", "sort", "sortRelevance", "sortName", "sortPriceAsc", "sortPriceDesc",
   "inStock", "from", "to", "noResults", "showMore", "available", "soldOut", "similar",
+  "accessories", "spareParts", "claims", "setContents",
   "addToCart", "cart", "subtotal", "checkout", "cartEmpty", "cartNotice",
 ] as const;
 /** Texts that may carry inline HTML (links, emphasis): wrapped, so that only `v-html="text.x.html"` uses them. */

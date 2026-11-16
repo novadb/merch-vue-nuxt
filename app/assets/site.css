@@ -358,6 +358,9 @@ body:not([data-shop]) .pdp__buy { display: none; }
 .specs > div { display: grid; grid-template-columns: 140px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .specs dt { color: var(--muted); font-size: 0.9rem; }
 .specs dd { margin: 0; }
+.pdp__subhead { margin: 32px 0 0; font-size: 1.1rem; font-weight: 600; }
+.pdp__list { margin: 12px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.pdp__list li { padding: 12px 0; border-bottom: 1px solid var(--line); }
 
 /* ---- footer & misc ----------------------------------------------------------------------- */
 /* The bottom padding keeps the end of the page clear of the logo fixed in the corner (`.source`), on a phone too. */
