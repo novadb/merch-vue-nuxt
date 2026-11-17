@@ -34,7 +34,7 @@ function rewriteLinks(html: string, targets: Map<number, Link>): string {
     .replace(/\sdata-nova-[a-z]+="[^"]*"/g, "");
 }
 
-/** The root node (`visualComponentRoot`) comes from the CMS as `<div class="main">`: the `.main` of site.css. */
+/** The root node (`merchComponentRoot`) comes from the CMS as `<div class="main">`: the `.main` of site.css. */
 export function resolveDocument(root: VNode, lookup: Lookup): ContentRoot {
   const children = resolveChildren(root, lookup);
   const hero = firstImage(children);

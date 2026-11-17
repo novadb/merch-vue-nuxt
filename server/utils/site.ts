@@ -8,7 +8,7 @@ import { NAME, PAGE, PAGE_SEARCH_FIELDS, TYPE } from "./schema";
 /** One node of a Visual Document as the Delivery API returns it. */
 export type VNode = {
   type: "group" | "text" | "image" | "object" | "unknown";
-  /** API identifier of the component's definition (`visualComponentRoot`, `websiteHero`, …); the site renders by `type`, `element` and `class`. */
+  /** API identifier of the component's definition (`merchComponentRoot`, `merchComponentHero`, …); the site renders by `type`, `element` and `class`. */
   definition: string;
   element?: string;
   class?: string;

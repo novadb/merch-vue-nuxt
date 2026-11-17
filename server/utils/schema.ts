@@ -68,16 +68,16 @@ export const PRODUCT = {
   urlSegment: "merchProductUrlSegment",
   shopifyId: "merchProductShopifyId",
   /** References to `merchClaim` objects: statements the product may make. */
-  claims: "merchClaimRefs",
+  claims: "merchProductClaims",
   /** References to `merchSetItem` objects, set only on a set product. */
   setItems: "merchProductSetItems",
   /** References to `merchMaterial`, `merchFinish` objects. */
-  materials: "merchMaterials",
-  finishes: "merchFinishes",
+  materials: "merchProductMaterials",
+  finishes: "merchProductFinishes",
   /** Volume in cm³ (a cup's, printed as ml), pieces per set, screen size in inches. */
-  volume: "merchVolume",
-  pieces: "merchPiecesPerSet",
-  screenSize: "merchScreenSize",
+  volume: "merchProductVolume",
+  pieces: "merchProductPiecesPerSet",
+  screenSize: "merchProductScreenSize",
   seoTitle: "merchSeoTitle",
   seoDescription: "merchSeoDescription",
   seoNoIndex: "merchSeoNoIndex",
@@ -101,7 +101,7 @@ export const ARTICLE = {
 } as const;
 
 export const CLAIM = { text: "merchClaimText" } as const;
-export const SET_ITEM = { article: "merchSetItemRef", quantity: "merchSetItemQty" } as const;
+export const SET_ITEM = { article: "merchSetItemArticle", quantity: "merchSetItemQuantity" } as const;
 
 /**
  * The workflow state "released": only products and articles in it are on the site, the rest is still being edited or
