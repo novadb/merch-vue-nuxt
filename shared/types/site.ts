@@ -120,5 +120,5 @@ export type PageData =
 /** `/{region}/search`: the query, matching pages and the products as a live range. */
 export type SearchData = { q: string; pages: Link[]; range: RangeData };
 
-/** `POST /api/suggest`: the typeahead's answer. */
+/** `GET /api/suggest`: the typeahead's answer. */
 export type Suggestions = { products: { name: string; url: string; image: string | null; price: string }[]; pages: Link[] };

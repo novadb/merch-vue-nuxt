@@ -14,10 +14,30 @@ page is rendered on the server and then hydrated, and Vue takes over in the brow
 and UI text is read live from NovaDB's Delivery API (branch `merchDemo`) with plain `$fetch`/`fetch` in Nitro server
 routes; there is no NovaDB package in between, and the Delivery login never leaves the server.
 
-Everything works without JavaScript: filters, sorting, "Show more" and search are real POST forms that the page answers
-with itself. With JavaScript, Vue components take over: the range updates in place (facets and sorting apply on change,
-cards that stay keep their element and picture, more cards load while scrolling), and the search box is a typeahead
-combobox. Shopify's own Buy Button and cart are started by a small client plugin.
+Everything works without JavaScript: filters, sorting, "Show more" and search are GET forms whose fields are the page's
+query string, and the page answers with itself. With JavaScript the same fields become the route's query and the
+page fetches the range for it: the range updates in place (facets and sorting apply on change, cards that stay keep
+their element and picture, more cards load while scrolling), links navigate in the page, and the search box is a
+typeahead combobox. Shopify's own Buy Button and cart are started by a small client plugin.
+
+## What this demo shows, and what it does not
+
+It shows Nuxt written the way Nuxt is meant to be used, as the same pattern a React Router site follows:
+
+- **File routes.** `app/pages/[region]/[...path].vue` and `search.vue` are the site's pages; `<NuxtLink>` links them.
+  The region switch is a plain `<a>` on purpose: a region is another market, and Shopify's cart takes the region's
+  market when the page starts. Links inside the CMS's content stay the HTML the CMS wrote.
+- **`useAsyncData` on `route.query`.** A filtered view is a URL: the page reads `route.query`, fetches `/api/page`
+  or `/api/search` with it and watches it, so a change of the query fetches again while the page stays mounted. Back and
+  Forward restore both the address and the form's fields; a query name that no form uses changes nothing, and the
+  canonical is the plain page.
+- **Nitro server routes as the front end's back end.** `server/api/*` read NovaDB with plain `fetch` and answer JSON;
+  on the server the page's calls are function calls.
+- **`useSeoMeta`, `useHead`.** Title, description, robots, canonical and hreflang follow the page's data.
+- **Hydration.** The live range and the typeahead are Vue components with reactive state, not a script on top of server HTML.
+
+Not shown on purpose: a store (Pinia) for what the page already holds, and a Nuxt module that hides NovaDB: the code
+that reads the Delivery API is the part to take away, in the open.
 
 ## Run
 
@@ -46,13 +66,13 @@ The tests tagged `@shopify` (buy button, cart) need the Shopify variables.
 
 ## How a request is answered
 
-1. `server/middleware/canonical-url.ts` redirects `/uk/shop/` to `/uk/shop` (one URL per page); `posted-form.ts` keeps
-   the fields of a posted form for the render.
+1. `server/middleware/canonical-url.ts` redirects `/uk/shop/` to `/uk/shop` (one URL per page), keeping the query string.
 2. The page (`app/pages/[region]/[...path].vue`) loads its data with `useAsyncData`: `/api/site/{region}` (texts,
-   navigation) and `/api/page` (the page or product, the range for the posted form). On the server these calls are
+   navigation) and `/api/page` (the page or product, and the range for the query's fields). On the server these calls are
    function calls, not HTTP; the data goes into the page's payload.
 3. `server/api/*` read NovaDB through `server/utils/` and answer plain JSON (`shared/types/site.ts`).
-4. Vue renders the HTML; in the browser it hydrates from the payload, without asking the server again.
+4. Vue renders the HTML; in the browser it hydrates from the payload, without asking the server again. A later change of
+   the query (a filter, "Show more", Back) makes the page fetch `/api/page` again; a link to another page navigates in the browser.
 
 ## Where things are
 
@@ -66,17 +86,18 @@ The tests tagged `@shopify` (buy button, cart) need the Shopify variables.
 | `server/utils/products.ts` | released products with their articles, claims and set rows; full-text filter, facets (counted on the server), sorting |
 | `server/utils/content.ts` | a page's Visual Document, resolved for rendering: links, embedded products and pages, pictures |
 | `server/utils/images.ts`, `media.ts`, `server/routes/media/` | picture URLs by content address (`/media/{md5}/original{ext}`, `/media/{md5}/{width}{ext}.webp`); the `/media` proxy with disk cache and scaled WebP variants (`sharp`) |
-| `server/api/` | `site/{region}`, `page`, `search` (the pages' data), `suggest` (the typeahead's JSON) |
+| `server/api/` | `site/{region}`, `page?region=&path=`, `search?region=&q=` (the pages' data; the range form's fields travel in the same query), `suggest?lang=&q=` (the typeahead's JSON) |
 | `server/routes/index.get.ts` | `/` → region by `Accept-Language` |
 | `shared/` | what server and browser both use: the data types, what a product's articles say (colour, stock), regions and prices, texts, picture URLs, range constants |
 | `app/pages/[region]/[...path].vue`, `search.vue`, `app/error.vue` | `/{region}/…` (a page or a product), the search page, 404 and error page |
 | `app/components/SiteShell.vue` | document, header, region switch, footer; every page wraps itself in it |
 | `app/components/VisualDocument.vue`, `ContentBlock.vue` | the Visual Document renderer |
-| `app/components/ProductRange.vue`, `FacetGroup.vue`, `ProductGrid.ts` | the live range: facets, sorting, cards, in place in the browser |
+| `app/components/ProductRange.vue`, `FacetGroup.vue`, `ProductGrid.ts` | the live range: the facet form as the route's query, sorting, cards, in place in the browser |
 | `app/components/SearchBox.vue` | the search form and its typeahead combobox |
 | `app/components/ProductCard.vue`, `PageTeaser.vue`, `ProductDetail.vue`, `Breadcrumbs.vue` | product card, page teaser, product page, breadcrumb |
-| `app/composables/` | site data and texts, the posted form, canonical and hreflang links |
-| `app/plugins/shopify.client.js` | Shopify's Buy Button and cart in the site's colours |
+| `app/composables/` | site data and texts, canonical and hreflang links |
+| `app/router.options.ts` | the scroll behaviour: a change of the query keeps the position |
+| `app/plugins/shopify.client.js` | Shopify's Buy Button and cart in the site's colours; the button is placed again after a navigation to a product |
 | `app/assets/site.css`, `public/` | the stylesheet, fonts, icons, `robots.txt`: the same files in every demo |
 
 ## Deviations
@@ -90,13 +111,7 @@ From the shared contract (the reference's HTML and behaviour), because this demo
   writes hydration comments (`<!--[-->`, `<!--]-->`, `<!---->`) between elements, and the head has Nuxt's scripts (an
   import map, module preloads, the payload). Small equivalents in serialisation: the header's search input has
   `value=""`, a swatch's style ends in `;`, an empty `alt` is written as `alt`. The product picture has no
-  `<link rel="preload">`.
+  `<link rel="preload">`. A `<NuxtLink>` to the page in view carries `aria-current="page"`.
 - **Typeahead markup.** The combobox attributes and the `ul.suggest` list appear after hydration, as with the shared
   script; the list's ID comes from `useId()` (`suggest-v-0-0-1`), not a counter.
 - **`<body data-text>`** carries only the texts of Shopify's button and cart; the typeahead's texts come with the payload.
-- **The in-place range takes Nuxt's payload from the answer.** With JavaScript a filter change sends the same POST as
-  without and reads the new range from the answered page's payload, with Nuxt's `parsePayload`
-  (`#app/composables/payload`), an internal export that a Nuxt upgrade may move. Before a filter result is shown, the
-  missing pictures of its first batch (up to 12 cards) are loaded, not only those that end up on screen.
-- **Plain links.** Every navigation is a document load (`<a href>`, no `<NuxtLink>`): content links are the CMS's own
-  HTML, and each page's header and SEO links come from its server render. Vue Router is there because Nuxt's pages need it.

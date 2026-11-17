@@ -4,7 +4,7 @@
  * its picture is never loaded or painted twice. Vue's keyed list would keep only the cards that stay and make the others anew.
  */
 import type { Product } from "#shared/types/site";
-import { h, render, type PropType } from "vue";
+import { h, hydrate, render, type PropType, type VNode } from "vue";
 import ProductCard from "./ProductCard.vue";
 
 export default defineComponent({
@@ -20,25 +20,31 @@ export default defineComponent({
 
     const app = useNuxtApp().vueApp;
     const cards = new Map<number, HTMLElement>(); // every card so far, by product ID
-    /** The card of a product: the one made before, else a new one, rendered by Vue outside the page. */
-    function cardOf(product: Product): HTMLElement {
+    /**
+     * The card of a product: the one made before, else a new one, rendered by Vue outside the page. `served` is the
+     * server's markup of it: Vue hydrates it in a box of its own, so the card's link navigates in the page like any other.
+     */
+    function cardOf(product: Product, served?: HTMLElement): HTMLElement {
       let card = cards.get(product.id);
       if (!card) {
-        const vnode = h(ProductCard, { product });
+        const vnode = h(ProductCard, { product }) as VNode<Node, Element>; // `hydrate` is typed for the browser's nodes
         vnode.appContext = app._context; // the card's composables (texts, region) need the app
         const box = document.createElement("div");
-        render(vnode, box);
+        if (served) {
+          box.append(served);
+          hydrate(vnode, box);
+        } else render(vnode, box);
         card = box.firstElementChild as HTMLElement;
         cards.set(product.id, card);
       }
       return card;
     }
-    const place = (items: Product[]) => grid.value!.replaceChildren(...items.map(cardOf));
+    const place = (items: Product[]) => grid.value!.replaceChildren(...items.map((product) => cardOf(product)));
 
     onMounted(() => {
-      const rendered = [...grid.value!.children] as HTMLElement[]; // by the server, when the page was loaded with this grid
-      rendered.forEach((card, i) => cards.set(props.items[i]!.id, card));
-      if (!rendered.length) place(props.items);
+      const served = [...grid.value!.children] as HTMLElement[]; // by the server, when the page was loaded with this grid
+      served.forEach((card, i) => cardOf(props.items[i]!, card));
+      place(props.items);
     });
     watch(() => props.items, place, { flush: "post" });
 
@@ -48,7 +54,7 @@ export default defineComponent({
        * then shows its picture at once instead of popping it in. A range starts again with one batch, so these are few.
        */
       async preload(items: Product[]) {
-        const missing = items.map(cardOf).flatMap((card) => [...card.querySelectorAll("img")]).filter((img) => !img.complete);
+        const missing = items.map((product) => cardOf(product)).flatMap((card) => [...card.querySelectorAll("img")]).filter((img) => !img.complete);
         for (const img of missing) img.loading = "eager";
         await Promise.race([Promise.allSettled(missing.map((img) => img.decode())), new Promise((done) => setTimeout(done, 1500))]);
       },

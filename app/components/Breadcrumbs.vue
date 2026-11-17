@@ -11,7 +11,7 @@ const text = useTexts();
     <ol>
       <li v-for="(item, i) in items" :key="item.url">
         <span v-if="i === items.length - 1" aria-current="page">{{ item.title }}</span>
-        <a v-else :href="item.url">{{ item.title }}</a>
+        <NuxtLink v-else :to="item.url">{{ item.title }}</NuxtLink>
       </li>
     </ol>
   </nav>

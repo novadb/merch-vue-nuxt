@@ -48,7 +48,7 @@ const bands = computed(() => [[text.value.similar, similar], [text.value.accesso
       <template v-if="contents.length">
         <h2 class="pdp__subhead">{{ text.setContents }}</h2>
         <ul class="pdp__list">
-          <li v-for="row in contents" :key="row.name">{{ row.quantity }} × <a v-if="row.url" :href="row.url">{{ row.name }}</a><template v-else>{{ row.name }}</template></li>
+          <li v-for="row in contents" :key="row.name">{{ row.quantity }} × <NuxtLink v-if="row.url" :to="row.url">{{ row.name }}</NuxtLink><template v-else>{{ row.name }}</template></li>
         </ul>
       </template>
       <template v-if="p.claims.length">

@@ -1,27 +1,27 @@
 # AGENTS.md
 
-Single source of truth for coding agents in this repository; `CLAUDE.md` only imports it. A line stays only if an agent would decide wrongly without it.
+Single source of truth for coding agents here; `CLAUDE.md` only imports it. A line stays only if an agent would decide wrongly without it.
 
 ## Project
 
 "Nova Merchandising": a demo website that shows NovaDB as CMS and PIM in one. Every page, product, price, picture and UI text is read live from NovaDB's Delivery API. Stack: Nuxt 4 (universal rendering: server render, then hydration), Vue 3, TypeScript; Nitro server routes read NovaDB with plain `fetch`, no NovaDB package.
 
-The idea of this demo is hydration: the live range and the typeahead are Vue components with reactive state, not a script on top of server HTML. Everything still works without JavaScript.
+The idea of this demo is Nuxt's conventions: file routes, `useFetch`/`useAsyncData` on `route.query`, Nitro server routes as the front end's back end, `useSeoMeta`, `<NuxtLink>`; the same pattern as a React Router site, written the Vue way. Not shown on purpose: a store (Pinia) for what the page already holds, a Nuxt module that hides NovaDB.
 
-Agencies and developers read this code to learn how the stack works with NovaDB, then change it for their own project. Measure every change against that: easy to read (a short path from URL to HTML, no layer of our own, fewer lines); the NovaDB code in the open, one place per concern; everything else (shop, pictures, SEO, deployment) in the smallest form that is right in concept; modern, idiomatic Nuxt, Vue and TypeScript; a complete site on the live API.
+Agencies and developers read this code to learn how the stack works with NovaDB, then change it for their own project. Measure every change against that: easy to read (a short path from URL to HTML, no layer of our own, fewer lines); the NovaDB code in the open, one place per concern; everything else (shop, pictures, SEO, deployment) as small as is right in concept; idiomatic Nuxt, Vue and TypeScript; a complete site on the live API.
 
 The same site exists in other stacks and must look and behave identically: HTML structure, CSS classes, label keys, routes and the shared files are a contract, checked by the shared Playwright suite. Change none of them here alone.
 
-Non-goals: client-side navigation, writes to NovaDB, a database or shared cache, query strings, a cart of our own.
+Non-goals: writes to NovaDB, a database or shared cache, a cart of our own.
 
 ## Commands and gates
 
 - Run: `npm run dev` (http://localhost:3000; reads `.env`). It needs the Delivery login (`NOVA_DELIVERY_URL`, `NOVA_DELIVERY_USER`, `NOVA_DELIVERY_PASSWORD`) and fails loudly without it.
 - `npm run typecheck`, `npm run build`, `docker build .`
-- Local container (`localhost:4001`, podman): `uv run scripts/refresh-container.py` after every completed change; `--full` after a change to `package.json`, `package-lock.json` or `Dockerfile`.
-- Tests: the shared Playwright suite (outside this repository, one project per demo), from its folder: `BASE_URL=http://localhost:4001 npx playwright test --project vue-nuxt`. The tests tagged `@shopify` need the Shopify variables.
-- Done means: typecheck, build and `docker build` pass and the suite is green against the real Delivery API. "Should work" is not a result; report each gate with its output.
-- The suite asserts structure and data rules, not CMS copy (a missing seed path is CMS data). It runs with JavaScript, so it misses what only the server render lacks: check a changed page's HTML with `curl` too.
+- Local container (`localhost:4001`, podman): `uv run scripts/refresh-container.py` after every change; `--full` after one to `package.json`, `package-lock.json` or `Dockerfile`.
+- Tests: the shared Playwright suite (outside this repository, one project per demo), from its folder: `BASE_URL=http://localhost:4001 npx playwright test --project vue-nuxt`. Tests tagged `@shopify` need the Shopify variables.
+- Done means: typecheck, build and `docker build` pass and the suite is green against the real Delivery API; report each gate with its output.
+- The suite asserts structure and data rules, not CMS copy (a missing seed path is CMS data), and runs with JavaScript: check a changed page's server HTML with `curl` too.
 
 ## NovaDB
 
@@ -46,15 +46,16 @@ Before touching `server/utils/` or the content components read `NOVADB.md`: the 
 
 ## Where the code does not say why
 
-- The site writes no query string and reads none (a foreign one is ignored): filters, sorting and search are POST forms answered with the page itself, so a filtered view has no URL of its own. That is intended. `server/middleware/posted-form.ts` keeps the posted fields for the render; the pages pass them to `server/api/page` or `search`.
-- With JavaScript, `ProductRange.vue` sends the very same POST and replaces the page's data with the answer's payload under the page's `useAsyncData` key (`page`, `search`): keep that key and its `payloadKey` prop together. Never give the range a JSON endpoint of its own: the suite expects the POST to the page URL and its HTML.
-- `ProductGrid.ts` keeps the card elements itself in the browser (Vue renders them only on the server): a card that leaves the result and comes back must be the same element. Do not turn it into a `v-for`.
-- Navigation is a document load (`<a href>`), never `<NuxtLink>`: header and SEO links come from each page's server render, content links are CMS HTML.
+- Filters, sorting, "Show more" and search are GET forms whose fields are `route.query`; the pages fetch `/api/page` and `/api/search` with it (`useAsyncData`, key per path, `watch` on the query). A name no form uses changes nothing, the canonical is the plain page, no `href`, `src` or `action` carries a query string. Without JavaScript the browser submits the form and the page answers with itself.
+- A page stays mounted while only its query changes (Nuxt keys a page by its parameters): that keeps the grid's cards. `ProductRange.vue` marks itself busy before the router has fetched anything (the suite sees `aria-busy` at once); the page calls its `preload` while it fetches. The price fields are `v-model` refs: a re-render would put the stale answer back over what was typed.
+- `app/router.options.ts` replaces Nuxt's scrolling, which jumps to the top when `#range` (the no-JS form's action) leaves the address.
+- `ProductGrid.ts` keeps the card elements itself in the browser (Vue renders them only on the server; each served card is hydrated in a box of its own, so its link navigates): a card that leaves the result and comes back must be the same element. Do not turn it into a `v-for`.
+- Links are `<NuxtLink>`, except the region switch, a plain `<a>` (a document load: Shopify's cart takes the region's market when the page starts), and the CMS's own HTML. Data that follows the route is keyed per route (`site:{region}`, `page:{path}`, `search:{region}`).
 - On a dynamic `<component :is>`, use `:innerHTML`, not `v-html`: Vue's server renderer drops the latter and the text appears only after hydration.
-- The HTML structure is a contract that every implementation of this site shares, plus what Nuxt adds (README, "Deviations"). Keep inline content (a price and its badge) on one template line, or Vue adds a space.
+- The HTML structure is a contract that every implementation of this site shares, plus what Nuxt adds (README, "Deviations"). Keep inline content (a price and its badge) on one template line: Vue adds a space otherwise.
 - `app/assets/site.css`, `NOVADB.md` and everything in `public/` (`favicon.svg`, `novadb.svg`, `github.svg`, `robots.txt`, the fonts) are shared files, kept identical from outside this repository: never adapt them. `site.css` is also the CMS editor's stylesheet. The shared client script (`site.js`) is not used here on purpose; its behaviour lives in the components.
-- Page content is made from a closed set of components (classes `merch*`): compose, or follow the structure with CSS, before asking for a new one.
-- The shop is Shopify's own Buy Button and cart, started in `app/plugins/shopify.client.js` from a product's `data-shopify-product`; that file is the shared client script's Shopify part, unchanged (plain JavaScript, so it stays comparable): change it only together with it. Without `SHOPIFY_DOMAIN` and `SHOPIFY_STOREFRONT_TOKEN` there are no buy buttons and no cart, silently: keep both in `.env`.
+- Page content is made from a closed set of components (classes `merch*`): compose before asking for a new one.
+- The shop is Shopify's own Buy Button and cart, started in `app/plugins/shopify.client.js` from a product's `data-shopify-product`; that file is the shared client script's Shopify part (plain JavaScript, so it stays comparable), plus one hook: a client navigation to a product page brings no `app:mounted`, so the button is placed at `page:finish` too. Without `SHOPIFY_DOMAIN` and `SHOPIFY_STOREFRONT_TOKEN` there are no buy buttons and no cart, silently: keep both in `.env`.
 
 ## Git
 

@@ -1,11 +1,12 @@
 <!--
-  The search form: a POST to /{region}/search, the query in the field `q`. In the browser the input becomes an ARIA
-  combobox over POST /api/suggest (products and pages while typing, keys ↑ ↓ Enter Esc); without JavaScript it is a plain form.
+  The search form: a GET to /{region}/search, the query in the field `q`. In the browser the input becomes an ARIA
+  combobox over GET /api/suggest (products and pages while typing, keys ↑ ↓ Enter Esc) and a search is a navigation of the
+  router; without JavaScript it is a plain form.
 -->
 <script setup lang="ts">
 import type { Suggestions } from "#shared/types/site";
 
-/** `large`: the search page's own form, with a button and the query it was posted with. */
+/** `large`: the search page's own form, with a button and the query it shows. */
 const props = defineProps<{ large?: boolean; query?: string }>();
 const SUGGEST = "/api/suggest";
 const region = useRegion();
@@ -15,6 +16,7 @@ const listId = `suggest-${useId()}`;
 const form = ref<HTMLFormElement>();
 /** What the input holds: bound with v-model, so a re-render (the list opening) never resets what the visitor typed. */
 const typed = ref(props.query ?? "");
+watch(() => props.query, (query) => (typed.value = query ?? "")); // after Back or Forward the field shows the query of the page
 // The combobox exists only where it works: in the browser, after hydration.
 const ready = ref(false);
 onMounted(() => (ready.value = true));
@@ -30,8 +32,15 @@ const optionId = (index: number) => `${listId}-${index}`;
 
 function choose(index: number) {
   const href = options.value[index];
-  if (href) location.href = href;
+  if (href) navigateTo(href);
   else form.value?.requestSubmit();
+}
+
+/** An empty query stays out of the address. */
+function search() {
+  close();
+  const q = typed.value.trim();
+  navigateTo({ path: `/${region}/search`, query: q ? { q } : {} });
 }
 
 function close() {
@@ -49,8 +58,7 @@ async function load(q: string) {
   controller?.abort();
   const request = (controller = new AbortController());
   try {
-    const body = new URLSearchParams({ lang: region, q }); // POST: no URL carries a query string
-    result.value = { ...(await $fetch<Suggestions>(SUGGEST, { method: "POST", body, signal: request.signal })), q };
+    result.value = { ...(await $fetch<Suggestions>(SUGGEST, { query: { lang: region, q }, signal: request.signal })), q };
     active.value = -1;
     open.value = true;
   } catch (error) {
@@ -89,7 +97,7 @@ const selected = (index: number) => (active.value < 0 ? undefined : index === ac
 </script>
 
 <template>
-  <form ref="form" :class="props.large ? 'search search--large' : 'search'" role="search" method="post" :action="`/${region}/search`">
+  <form ref="form" :class="props.large ? 'search search--large' : 'search'" role="search" method="get" :action="`/${region}/search`" @submit.prevent="search">
     <input
       v-model="typed" type="search" name="q" :placeholder="text.searchPlaceholder" :aria-label="text.search" autocomplete="off" :data-suggest="SUGGEST"
       :role="ready ? 'combobox' : undefined" :aria-controls="ready ? listId : undefined" :aria-autocomplete="ready ? 'list' : undefined"

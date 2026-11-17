@@ -1,6 +1,6 @@
 /**
- * One URL per page: `/de/shop/` → `/de/shop`, `/de` → `/de/` (the canonical forms), a permanent redirect. A foreign
- * query string (tracking) is kept on the way, and otherwise ignored: the site reads none.
+ * One URL per page: `/de/shop/` → `/de/shop`, `/de` → `/de/` (the canonical forms), a permanent redirect. The query
+ * string (a filter, a tracking parameter) is kept on the way.
  */
 import { REGIONS } from "#shared/utils/regions";
 

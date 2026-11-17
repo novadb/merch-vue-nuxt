@@ -17,13 +17,13 @@ const details = computed(() => [
 
 <template>
   <article class="product-card">
-    <a :href="p.url" class="product-card__link">
+    <NuxtLink :to="p.url" class="product-card__link">
       <div class="product-card__media">
         <img v-if="p.image" :src="p.image" :srcset="srcSet(p.image)" sizes="(min-width: 700px) 320px, 100vw" :alt="p.name" loading="lazy" width="400" height="400">
       </div>
       <h3 class="product-card__name">{{ p.name }}</h3>
       <p class="product-card__meta">{{ details }}</p>
       <p class="product-card__price">{{ formatPrice(p.price, region) }}<span v-if="inStockOf(p) === false" class="badge badge--muted">{{ text.soldOut }}</span></p>
-    </a>
+    </NuxtLink>
   </article>
 </template>

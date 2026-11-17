@@ -17,7 +17,7 @@ useHead({ title: () => (notFound.value ? `${text.value!.notFound} · ${text.valu
       <h1 class="merchDisplay">{{ notFound ? text!.notFound : "Error" }}</h1>
       <p v-if="notFound" class="merchLead" v-html="text!.notFoundText.html" />
       <p v-else class="merchLead">Something went wrong while loading this page.</p>
-      <p class="merchCta"><a :href="site?.home.url ?? '/'">{{ text?.home ?? "Home" }}</a></p>
+      <p class="merchCta"><NuxtLink :to="site?.home.url ?? '/'">{{ text?.home ?? "Home" }}</NuxtLink></p>
     </section>
   </SiteShell>
 </template>

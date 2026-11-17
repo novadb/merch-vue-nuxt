@@ -6,10 +6,10 @@ Disallow: /
 # variants a visitor can create. To open the site, delete "Disallow: /" above and use these rules instead:
 #
 #   Disallow: /*/search    internal search results
-#   Disallow: /api/        typeahead JSON
+#   Disallow: /api/        typeahead
 #
-# The site supports this: it creates no URL with a query string. Filters, sorting and search are POST
-# forms, so a filtered or sorted view has no URL of its own and crawlers find nothing to follow.
+# The site supports this: no link, picture or form action in its pages carries a query string. A filtered
+# or sorted view is reached by a form (which a crawler does not submit), so crawlers find nothing to follow.
 #
 # Query strings are deliberately not blocked. They only come from outside (tracking parameters on
 # links to the site), and every page names its query-free URL as rel="canonical". A crawler has to

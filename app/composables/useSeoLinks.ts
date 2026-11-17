@@ -21,18 +21,16 @@ function useOrigin() {
 /**
  * `path` is the page's clean URL (no filters, sorting, tracking parameters). `variants` holds the same content in every
  * region that has it, the page itself included: every variant lists all of them, `x-default` is `/`, which picks a region.
- * A page that asks not to be indexed lists no variants: it is not part of the language set.
+ * A page that asks not to be indexed lists no variants: it is not part of the language set. A getter, so the links follow the page.
  */
-export function useSeoLinks(path: string, variants: Alternates, hints: Partial<Seo> = {}) {
+export function useSeoLinks(page: () => { path: string; variants: Alternates; hints?: Partial<Seo> }) {
   const origin = useOrigin().value;
-  const alternates = hints.noIndex ? [] : REGIONS.flatMap((region) => (variants[region] ? [{ hreflang: HTML_LANG[region], href: origin + variants[region] }] : []));
-  if (alternates.length) alternates.push({ hreflang: "x-default", href: `${origin}/` });
-  const robots = [hints.noIndex && "noindex", hints.noFollow && "nofollow"].filter(Boolean).join(", ");
-  useHead({
-    link: [{ rel: "canonical", href: origin + path }, ...alternates.map((a) => ({ rel: "alternate" as const, ...a }))],
-    meta: [
-      ...(hints.description ? [{ name: "description", content: hints.description }] : []),
-      ...(robots ? [{ name: "robots", content: robots }] : []),
-    ],
+  const robots = () => [page().hints?.noIndex && "noindex", page().hints?.noFollow && "nofollow"].filter(Boolean).join(", ") || undefined;
+  useHead(() => {
+    const { path, variants, hints } = page();
+    const alternates = hints?.noIndex ? [] : REGIONS.flatMap((region) => (variants[region] ? [{ hreflang: HTML_LANG[region], href: origin + variants[region] }] : []));
+    if (alternates.length) alternates.push({ hreflang: "x-default", href: `${origin}/` });
+    return { link: [{ rel: "canonical", href: origin + path }, ...alternates.map((a) => ({ rel: "alternate" as const, ...a }))] };
   });
+  useSeoMeta({ description: () => page().hints?.description, robots });
 }

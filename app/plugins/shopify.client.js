@@ -1,6 +1,7 @@
-// The Shopify part of the shared site.js (the other demos' only client script), unchanged: started once the app is
-// mounted, so the product page's buy button host (`.pdp__buy[data-shopify-product]`) is in the document. Plain
-// JavaScript on purpose: it stays line for line comparable with site.js. Its texts come from `<body data-text>` (SiteShell.vue).
+// The Shopify part of the shared site.js (the other demos' only client script): started once the app is mounted, so the
+// product page's buy button host (`.pdp__buy[data-shopify-product]`) is in the document. A page the visitor navigates to
+// brings its own host without a document load: its button is placed when the page has finished (`page:finish`).
+// Plain JavaScript on purpose: it stays comparable with site.js. Its texts come from `<body data-text>` (SiteShell.vue).
 export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.hook("app:mounted", () => {
     const text = JSON.parse(document.body.dataset.text || "{}");
@@ -13,12 +14,13 @@ export default defineNuxtPlugin((nuxtApp) => {
     // Without the shop's domain and token (two meta tags, from the server's environment) there are no buttons and no cart.
     const shopDomain = document.querySelector('meta[name="shopify-domain"]')?.content;
     const shopToken = document.querySelector('meta[name="shopify-token"]')?.content;
-    const buttons = document.querySelectorAll("[data-shopify-product]");
     // First URL segment = region; each region is a market of the shop. `moneyFormat` null: the shop's own (EUR).
     const markets = { de: { country: "DE", moneyFormat: null }, uk: { country: "GB", moneyFormat: "£{{amount}}" }, us: { country: "US", moneyFormat: "${{amount}}" } };
     const market = markets[location.pathname.split("/")[1]];
 
+    let placeButtons; // set once the cart exists: the buttons need it
     if (shopDomain && shopToken) startShopify().catch((error) => console.warn("Shopify unavailable", error));
+    nuxtApp.hook("page:finish", () => placeButtons?.());
 
     async function startShopify() {
       const ShopifyBuy = await loadScript("https://sdks.shopifycdn.com/buy-button/latest/buy-button-storefront.min.js").then(() => window.ShopifyBuy);
@@ -47,19 +49,25 @@ export default defineNuxtPlugin((nuxtApp) => {
         },
       });
 
-      for (const node of buttons) {
-        ui.createComponent("product", {
-          id: node.dataset.shopifyProduct,
-          node,
-          options: {
-            product: {
-              contents: { img: false, imgWithCarousel: false, title: false, variantTitle: false, price: false, description: false, quantity: false, buttonWithQuantity: false },
-              text: { button: text.addToCart },
-              styles: { product: { "max-width": "none", "margin": "0", "text-align": "left" }, button: { ...button, padding: "14px 28px" } },
+      const placed = new WeakSet(); // the hosts that have their button
+      placeButtons = () => {
+        for (const node of document.querySelectorAll("[data-shopify-product]")) {
+          if (placed.has(node)) continue;
+          placed.add(node);
+          ui.createComponent("product", {
+            id: node.dataset.shopifyProduct,
+            node,
+            options: {
+              product: {
+                contents: { img: false, imgWithCarousel: false, title: false, variantTitle: false, price: false, description: false, quantity: false, buttonWithQuantity: false },
+                text: { button: text.addToCart },
+                styles: { product: { "max-width": "none", "margin": "0", "text-align": "left" }, button: { ...button, padding: "14px 28px" } },
+              },
             },
-          },
-        });
-      }
+          });
+        }
+      };
+      placeButtons();
     }
 
     // A cart prices in the market of its buyer's country. A new cart gets the country of the region; a cart that was started in

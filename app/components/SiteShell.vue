@@ -33,13 +33,13 @@ useHead({
   <a class="skip" href="#main">{{ text?.skip ?? "Skip to content" }}</a>
   <header v-if="site && text" class="site-header">
     <div class="site-header__inner">
-      <a class="logo" :href="site.home.url">{{ site.home.title }}</a>
+      <NuxtLink class="logo" :to="site.home.url">{{ site.home.title }}</NuxtLink>
       <nav class="site-nav" :aria-label="text.mainNav">
         <ul>
           <li v-for="item in site.nav" :key="item.url">
-            <a :href="item.url">{{ item.title }}</a>
+            <NuxtLink :to="item.url">{{ item.title }}</NuxtLink>
             <ul v-if="item.children.length" class="site-nav__sub">
-              <li v-for="c in item.children" :key="c.url"><a :href="c.url">{{ c.title }}</a></li>
+              <li v-for="c in item.children" :key="c.url"><NuxtLink :to="c.url">{{ c.title }}</NuxtLink></li>
             </ul>
           </li>
         </ul>
@@ -47,6 +47,7 @@ useHead({
       <SearchBox />
       <div class="site-header__tools">
         <nav class="regions" :aria-label="text.region">
+          <!-- A plain link, not a <NuxtLink>: the region is a market, and Shopify's cart takes it when the page starts. -->
           <template v-for="r in REGIONS" :key="r">
             <span v-if="r === region" class="regions__item" aria-current="true" :title="REGION_LABEL[r].title">{{ REGION_LABEL[r].short }}</span>
             <a v-else class="regions__item" :href="alternates?.[r] ?? `/${r}/`" :hreflang="HTML_LANG[r]" :title="REGION_LABEL[r].title">{{ REGION_LABEL[r].short }}</a>

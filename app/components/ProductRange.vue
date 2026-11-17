@@ -1,122 +1,91 @@
 <!--
-  A live product range: facet filters as a plain POST form (the URL stays the page's), sorting, the product grid.
-  Without JavaScript every change is a form the browser posts and the page that answers. In the browser the same POST
-  is sent in the background: the answer is the page itself, and its payload (the page's data, as the server rendered
-  it) replaces the page's data here, so Vue updates the range in place: no page load, the scroll position and the
-  focused control stay. "Show more" is clicked by itself as it comes near the window.
+  A live product range: facet filters as a plain GET form whose fields are the page's query string, sorting, the product
+  grid. Without JavaScript every change is a form the browser submits and the page that answers. In the browser the same
+  fields become the route's query: the page fetches the range for it, Vue updates the range in place, and the scroll position and the
+  focused control stay. "Show more" is clicked by itself as it comes near the window, and replaces the history entry,
+  so Back leaves the range instead of stepping through batches.
 -->
 <script setup lang="ts">
 import type { RangeData, Sort } from "#shared/types/site";
 import { RANGE_BATCH, SORTS } from "#shared/utils/range";
-import { parsePayload } from "#app/composables/payload";
+import { isNavigationFailure, NavigationFailureType } from "vue-router";
 import ProductGrid from "./ProductGrid";
 
 const props = defineProps<{
   range: RangeData;
-  /** The key of the page's data (`useAsyncData`) that holds this range: the answer's data under that key replaces it. */
-  payloadKey: string;
+  /** The page is fetching the range for a new query string. */
+  pending: boolean;
   /** Hidden fields that must survive a filter change, e.g. the search query. */
   keep?: Record<string, string>;
 }>();
 const text = useTexts();
-const nuxtApp = useNuxtApp();
-const pageData = useNuxtData<{ range: RangeData }>(props.payloadKey).data;
+const router = useRouter();
 
 const sorts = computed(() => SORTS.filter((s) => s !== "relevance" || props.range.defaultSort === "relevance"));
 const sortLabel = computed<Record<Sort, string>>(() => ({
   relevance: text.value.sortRelevance, name: text.value.sortName, "price-asc": text.value.sortPriceAsc, "price-desc": text.value.sortPriceDesc,
 }));
 
+/** The price fields, which the visitor types into before they apply: they show what the range was computed for again once its answer is in. */
+const min = ref(props.range.selection.min);
+const max = ref(props.range.selection.max);
+function showSelection() {
+  [min.value, max.value] = [props.range.selection.min, props.range.selection.max];
+}
+watch(() => props.range.selection, showSelection);
+
 const section = ref<HTMLElement>();
+const form = ref<HTMLFormElement>();
 const grid = ref<InstanceType<typeof ProductGrid> & { preload(items: RangeData["items"]): Promise<void>; focus(index: number): void }>();
 const moreButton = ref<HTMLButtonElement>();
-/** A filter or sort change is on its way (the whole range is replaced); "Show more" is on its way (cards are added). */
+/**
+ * An answer is on its way. `send` sets it at once, before the router has begun to fetch: the range is never seen idle
+ * between a change and its answer. A navigation that did not come from the form (Back, Forward) sets it when the page starts fetching.
+ */
 const busy = ref(false);
-const loading = ref(false);
-let pending: AbortController | undefined; // the running request; a newer one aborts it
-let native = false; // set when an answer is unusable: the browser then submits the form itself and shows what the server says
+/** The answer to "Show more" adds cards; any other one replaces the range. */
+const appending = ref(false);
+watch(() => props.pending, (pending) => pending && (busy.value = true));
 
-/** Posts the form as the browser would and returns the page data of the answer; undefined when the answer is unusable. */
-async function post(form: HTMLFormElement, submitter: HTMLElement | null, signal: AbortSignal) {
-  const body = new URLSearchParams(new FormData(form, submitter) as unknown as Record<string, string>);
-  const res = await fetch(location.pathname, { method: "POST", body, signal });
-  if (!res.ok) return undefined;
-  const payload = new DOMParser().parseFromString(await res.text(), "text/html").getElementById("__NUXT_DATA__")?.textContent;
-  if (!payload) return undefined;
-  const data = (await nuxtApp.runWithContext(() => parsePayload(payload))).data?.[props.payloadKey];
-  return data?.range ? (data as { range: RangeData }) : undefined;
-}
+// The page calls this while it fetches: the pictures of the first cards of the answer are loaded before it is shown.
+defineExpose({ preload: (items: RangeData["items"]) => grid.value?.preload(items.slice(0, RANGE_BATCH)) });
 
-/** A filter or sort change: the range from the answer replaces this one; cards that stay keep their element. */
-async function update(form: HTMLFormElement, submitter: HTMLElement | null = null) {
-  const request = new AbortController();
-  pending?.abort();
-  pending = request;
+/**
+ * Sends the form's fields, as the browser's own submit would, as the query of this page. The fields that say nothing
+ * (empty, or the default sorting) stay out of the address; "Reset" sends only what must survive it (`keep`).
+ */
+async function send(submitter: HTMLButtonElement | null) {
+  const fields = submitter?.name === "reset" ? Object.entries(props.keep ?? {}) : [...new FormData(form.value!, submitter)];
+  const params = new URLSearchParams();
+  for (const [name, value] of fields) if (value && !(name === "sort" && value === props.range.defaultSort)) params.append(name, String(value));
+  const query = Object.fromEntries([...params.keys()].map((name) => [name, params.getAll(name)]));
+  const replace = submitter !== null && submitter === moreButton.value;
   busy.value = true;
-  let next;
-  try {
-    next = await post(form, submitter, request.signal);
-  } catch (error) {
-    if ((error as Error).name === "AbortError") return;
-    console.warn(error);
+  appending.value = replace;
+  const failure = await router.push({ query, replace });
+  // The address is the one the page has: nothing is fetched, and typed values that were never applied give way to the answer.
+  if (isNavigationFailure(failure, NavigationFailureType.duplicated)) {
+    busy.value = false;
+    showSelection();
   }
-  if (!next) {
-    native = true;
-    return form.requestSubmit(submitter);
-  }
-  await grid.value?.preload(next.range.items);
-  if (request.signal.aborted) return;
-  const y = scrollY;
-  pageData.value = next;
-  await nextTick();
-  // The scroll position stays. Only when it cannot (the page is now shorter than it) or shows no result any more
-  // (they end above the window) the range is shown from its start.
-  const start = parseFloat(getComputedStyle(section.value!).scrollMarginTop); // where the range starts below the sticky header
-  if (Math.abs(scrollY - y) > 1 || section.value!.lastElementChild!.getBoundingClientRect().bottom < start) section.value!.scrollIntoView({ behavior: "instant" });
-  busy.value = false;
-  watchMore();
-}
-
-/** "Show more": the range with one batch more; the cards already shown stay, the new ones are appended. */
-async function more(form: HTMLFormElement, button: HTMLButtonElement) {
-  if (loading.value || busy.value) return; // a filter change is running: its answer comes first
-  const request = new AbortController();
-  pending?.abort();
-  pending = request;
-  loading.value = true;
-  let next;
-  try {
-    next = await post(form, button, request.signal);
-  } catch (error) {
-    if ((error as Error).name === "AbortError") return void (loading.value = false); // a filter change took over
-    console.warn(error);
-  }
-  const shown = props.range.items.length;
-  // Filter values that are typed but not applied yet travel with the button: the answer may be a narrower range, and is shown as it is.
-  if (!next || next.range.items.length === shown) {
-    native = true;
-    return form.requestSubmit(button);
-  }
-  const keyboard = document.activeElement === button;
-  pageData.value = next;
-  await nextTick();
-  if (keyboard && next.range.items.length > shown) grid.value?.focus(shown); // a keyboard user goes on with the first new card
-  loading.value = false;
-  watchMore();
 }
 
 function onChange(event: Event) {
   const control = event.target as HTMLInputElement | HTMLSelectElement;
-  const form = control.form; // also set for the sort <select form="facets"> outside the form
-  if (form && control.type !== "number" && form.reportValidity()) update(form);
+  const owner = control.form; // also set for the sort <select form="facets"> outside the form
+  if (owner && control.type !== "number" && owner.reportValidity()) send(null);
 }
 
+/** A keyboard user who pressed "Show more" goes on with the first new card: its index. */
+let focusFrom: number | undefined;
 function onSubmit(event: SubmitEvent) {
-  if (native) return;
   event.preventDefault();
-  const form = event.target as HTMLFormElement;
-  if (event.submitter && event.submitter === moreButton.value) more(form, moreButton.value);
-  else update(form, event.submitter);
+  const submitter = event.submitter as HTMLButtonElement | null;
+  if (submitter !== null && submitter === moreButton.value) {
+    if (busy.value) return; // a filter change is running: its answer comes first
+    if (document.activeElement === submitter) focusFrom = props.range.items.length;
+  }
+  send(submitter);
 }
 
 // "Show more" clicks itself when it comes within 600 px of the window. Observed anew after every change: an observer
@@ -128,16 +97,32 @@ function watchMore() {
 }
 onMounted(() => {
   nearEnd = new IntersectionObserver((entries) => {
-    for (const entry of entries) if (entry.isIntersecting && !native && !loading.value) (entry.target as HTMLButtonElement).click();
+    for (const entry of entries) if (entry.isIntersecting && !busy.value) (entry.target as HTMLButtonElement).click();
   }, { rootMargin: "600px 0px" });
   watchMore();
 });
 onBeforeUnmount(() => nearEnd?.disconnect());
+
+// The browser moves the scroll position when the page gets shorter: take it before the answer is shown.
+let scrolled = 0;
+watch(() => props.range, () => (scrolled = scrollY), { flush: "pre" });
+watch(() => props.range, async () => {
+  await nextTick(); // the grid places its cards after this component has updated
+  // The scroll position stays. Only when it cannot (the page is now shorter than it) or shows no result any more
+  // (they end above the window) the range is shown from its start.
+  const start = parseFloat(getComputedStyle(section.value!).scrollMarginTop); // where the range starts below the sticky header
+  if (Math.abs(scrollY - scrolled) > 1 || section.value!.lastElementChild!.getBoundingClientRect().bottom < start) section.value!.scrollIntoView({ behavior: "instant" });
+  if (focusFrom !== undefined) grid.value?.focus(focusFrom);
+  focusFrom = undefined;
+  busy.value = appending.value = false;
+  watchMore();
+}, { flush: "post" });
 </script>
 
 <template>
-  <section id="range" ref="section" class="range" :aria-label="text.filter" :aria-busy="busy ? 'true' : undefined" @change="onChange">
-    <form id="facets" class="facets" method="post" action="#range" data-autosubmit="true" @submit="onSubmit">
+  <section id="range" ref="section" class="range" :aria-label="text.filter" :aria-busy="busy && !appending ? 'true' : undefined" @change="onChange">
+    <!-- `#range`: without JavaScript the answer opens at the range. -->
+    <form id="facets" ref="form" class="facets" method="get" action="#range" data-autosubmit="true" @submit="onSubmit">
       <input v-for="(value, name) in keep" :key="name" type="hidden" :name="name" :value="value">
       <FacetGroup
         v-if="range.facets.group.length > 1" :legend="text.group" name="group"
@@ -157,11 +142,11 @@ onBeforeUnmount(() => nearEnd?.disconnect());
         <legend>{{ text.price }}</legend>
         <label>
           <span>{{ text.from }}</span>
-          <input type="number" name="min" inputmode="numeric" min="0" :placeholder="String(range.facets.priceMin)" :value="range.selection.min">
+          <input v-model="min" type="number" name="min" inputmode="numeric" min="0" :placeholder="String(range.facets.priceMin)">
         </label>
         <label>
           <span>{{ text.to }}</span>
-          <input type="number" name="max" inputmode="numeric" min="0" :placeholder="String(range.facets.priceMax)" :value="range.selection.max">
+          <input v-model="max" type="number" name="max" inputmode="numeric" min="0" :placeholder="String(range.facets.priceMax)">
         </label>
       </fieldset>
       <div class="facets__actions">
@@ -179,9 +164,9 @@ onBeforeUnmount(() => nearEnd?.disconnect());
           </select>
         </label>
       </div>
-      <ProductGrid v-if="range.total" ref="grid" :items="range.items" :busy="loading" />
+      <ProductGrid v-if="range.total" ref="grid" :items="range.items" :busy="appending" />
       <p v-else class="range__empty">{{ text.noResults }}</p>
-      <!-- Posts the filters again with one batch more; in the browser it is clicked as it comes near and the new cards are appended. -->
+      <!-- Sends the filters again with one batch more; in the browser it is clicked as it comes near and the new cards are appended. -->
       <button
         v-if="range.total > range.items.length" ref="moreButton" type="submit" form="facets" name="shown"
         :value="range.selection.shown + RANGE_BATCH" class="button button--ghost range__more"

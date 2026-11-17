@@ -129,11 +129,11 @@ export function searchFilter(query: string, fields: string[]): string | undefine
 // ---- facets -------------------------------------------------------------------------------------
 
 /**
- * The filters and sorting of a posted range form; the form's "reset" button clears them all. Only the "Show more"
- * button posts `shown`, so any other change starts again with the first batch.
+ * The filters and sorting in a query string (the range form's fields; a name no form uses changes nothing); the form's
+ * "reset" button clears them all. Only the "Show more" button sends `shown`, so any other change starts again with the first batch.
  */
-export function parseSelection(posted: URLSearchParams): Selection {
-  const params = posted.has("reset") ? new URLSearchParams() : posted;
+export function parseSelection(query: URLSearchParams): Selection {
+  const params = query.has("reset") ? new URLSearchParams() : query;
   const num = (key: string) => {
     const value = Number(params.get(key));
     return params.get(key) && Number.isFinite(value) ? value : undefined;
@@ -188,11 +188,11 @@ function count(products: Product[], s: Selection, facet: ListFacet, selected: st
 }
 
 /**
- * The live range of `products` for a posted form: the selection applied, each facet counted over the products the other
+ * The live range of `products` for the query's fields: the selection applied, each facet counted over the products the other
  * facets let through, sorted, and cut to the cards that are shown (the browser gets no more than it renders).
  */
-export function rangeOf(products: Product[], posted: URLSearchParams, defaultSort: Sort, groupNames: Record<number, string>): RangeData {
-  const s = parseSelection(posted);
+export function rangeOf(products: Product[], query: URLSearchParams, defaultSort: Sort, groupNames: Record<number, string>): RangeData {
+  const s = parseSelection(query);
   const prices = products.map((p) => p.price).filter((v): v is number => v !== undefined);
   const facets: Facets = {
     group: count(products, s, "group", s.group.map(String)),

@@ -1,6 +1,6 @@
 /**
- * POST /api/page with `{ region, path, form }`: the data of `/{region}/{path}`, a CMS page (content and its live range
- * for the posted range form `form`) or a product from the PIM. 404 for any other path.
+ * GET /api/page?region=&path=: the data of `/{region}/{path}`, a CMS page (content and its live range for the range
+ * form's fields, which the page's own query string passes on) or a product from the PIM. 404 for any other path.
  */
 import type { Alternates, Link, PageData, Product } from "#shared/types/site";
 import { CULTURE, isRegion, OTHER_LANGUAGE_REGION, REGIONS, type Region } from "#shared/utils/regions";
@@ -10,14 +10,14 @@ import { loadProducts, productByPath, productsByIds, rangeOf, setContents } from
 import { PRODUCT } from "../utils/schema";
 import { breadcrumb, categoryPage, loadGroups, loadSite, type Page, type Site } from "../utils/site";
 
-type Body = { region: string; path: string; form: string };
-
 export default defineEventHandler(async (event): Promise<PageData> => {
-  const { region, path, form } = await readBody<Body>(event);
+  const query = getRequestURL(event).searchParams;
+  const region = query.get("region");
+  const path = query.get("path") ?? "";
   if (!isRegion(region)) throw createError({ statusCode: 404 });
   const site = await loadSite(region);
   const page = site.byPath.get(path);
-  return page ? pageData(site, page, region, new URLSearchParams(form)) : productData(site, region, path);
+  return page ? pageData(site, page, region, query) : productData(site, region, path);
 });
 
 /** The same content in every region: `own` is the path (without region) in the content language of `region`, `other` in the other one. */
@@ -30,7 +30,7 @@ function alternatesOf(region: Region, own: string | undefined, other: string | u
   return result;
 }
 
-async function pageData(site: Site, page: Page, region: Region, form: URLSearchParams): Promise<PageData> {
+async function pageData(site: Site, page: Page, region: Region, query: URLSearchParams): Promise<PageData> {
   const embeddedIds = [...referencedIds(page.content)].filter((ref) => !site.pages.has(ref));
   const wantedImages = imageIds(page.content); // plus the teaser picture of every page
   for (const p of site.pages.values()) if (p.imageId) wantedImages.add(p.imageId);
@@ -51,7 +51,7 @@ async function pageData(site: Site, page: Page, region: Region, form: URLSearchP
     alternates: alternatesOf(region, page.path, otherSite.pages.get(page.id)?.path),
     crumbs: breadcrumb(site, page),
     content: page.content && resolveDocument(page.content, { targets, products: new Map(embedded.map((p) => [p.id, p])), images }),
-    range: range.length ? rangeOf(range, form, "name", groupNames) : null,
+    range: range.length ? rangeOf(range, query, "name", groupNames) : null,
   };
 }
 
