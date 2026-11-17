@@ -1,7 +1,7 @@
 /**
  * Every NovaDB name the site depends on, in one place. IDs of branches and object types differ from installation to
  * installation, API identifiers do not, so the code addresses everything by identifier. The site's own identifiers carry
- * the prefix `merch` because they must be unique across branches; NovaDB's own (`image`, `typeAttribute`,
+ * the prefix `merch` because they must be unique across branches; NovaDB's own (`typeImage`, `typeAttribute`,
  * `attributeName`, the file attributes) do not.
  *
  * The Delivery API serves an identifier with a lower-case first letter, which is why the keys below start in lower case.
@@ -18,7 +18,7 @@ export const TYPE = {
   /** A product's sellable variant (SKU, colour, stock, delivery time). */
   article: "merchArticle",
   group: "merchProductGroup",
-  image: "image",
+  image: "typeImage",
   label: "merchLabel",
   color: "merchColor",
   material: "merchMaterial",

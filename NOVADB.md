@@ -17,7 +17,7 @@ One branch, `merchDemo`, holds CMS and PIM. The site only reads it. Content lang
 | `merchProductGroup` | a group of products, in a tree below a portfolio | name, parent group |
 | `merchClaim` | a statement a product may make | text |
 | `merchSetItem` | one row of a set product, an anonymous type | article, quantity |
-| `image` | a picture; a file type, so the object is the file | MD5, file extension |
+| `typeImage` | a picture; a file type, so the object is the file | MD5, file extension |
 | `merchLabel` | one UI text | key (language-neutral), text (per language) |
 | `merchColor`, `merchMaterial`, `merchFinish` | PIM values a product references | name; a colour also its hex value |
 | `typeAttribute` | NovaDB's own type of attribute definitions | name: a product attribute is printed under the name an editor sees in the CMS |
@@ -83,7 +83,7 @@ site; see "Workflow" below.
   HTML without the namespace.
 - **Files.** A picture is an object of a file type. A route outside the branch addresses bytes by content and can
   never change under its name: `files/{md5}{extension}` (the original). The site uses only this, so a fetched file is
-  kept for good. The `image` type must release MD5 and extension to the API for this. The API has no resize parameter,
+  kept for good. The `typeImage` type must release MD5 and extension to the API for this. The API has no resize parameter,
   and the thumbnail (`binaries/{id}`) is one rendition in a format and size the server chooses, so it is not used:
   other sizes are scaled by the site.
 - **Search.** Full-text search is the filter operator `:` on text attributes (the site searches a product's name,
